@@ -1,6 +1,6 @@
 /**
  *	@file ConnectedComponents.java
- *	@brief This class orchestrates all the driver jobs in order to get an array of clusters (\see Cluster) as a result.
+ *	@brief This class orchestrates all the driver jobs in order to get a file with the recognized clusters of the input graph.
  *  @author Federico Conte (draxent) 
  *  
  *	Copyright 2015 Federico Conte
@@ -30,13 +30,12 @@ import org.apache.hadoop.fs.Path;
 
 import pad.StarDriver.StarDriverType;
 
-/**	This class orchestrates all the driver jobs in order to get an array of clusters (\see Cluster) as a result. */
+/**	This class orchestrates all the driver jobs in order to get a file with the recognized clusters of the input graph. */
 public class ConnectedComponents
 {
 	private final String input;
-	private final String baseInput;
+	private final Path baseInput;
 	private final FileSystem fs;
-	private Clusters clusters;
 	
 	/**
 	* Initializes a new instance of the ConnectedComponents class.
@@ -45,9 +44,8 @@ public class ConnectedComponents
 	public ConnectedComponents( String graphInput ) throws IOException
 	{		
 		this.input = graphInput;
-		this.baseInput =  FilenameUtils.removeExtension( graphInput );
+		this.baseInput =  new Path( FilenameUtils.removeExtension( graphInput ) );
 		this.fs = FileSystem.get( new Configuration() );
-		this.clusters = null;
 	}
 	
 	/**
@@ -57,7 +55,7 @@ public class ConnectedComponents
 	*/
 	private boolean exit( String suffix ) throws IllegalArgumentException, IOException
 	{
-		this.fs.delete( new Path( this.baseInput + "_" + suffix ), true  );
+		this.fs.delete( this.baseInput.suffix( suffix ), true  );
 		return false;
 	}
 	
@@ -66,68 +64,55 @@ public class ConnectedComponents
 	 * The pseudo code is the following:
 	 * <code>
 	 *	Initialization_Driver()
-	 *	for log2(N) steps do
+	 *
+	 *	repeat
 	 * 	|	Large-Star_Driver()
 	 * 	|	Small-Star_Driver()
+	 *  until Convercence()
+	 *  
 	 *	Termination_Driver()
-	 *	CheckDriver()
-	 *	build the array of Cluster
 	 * </code>
 	 * @return 	<c>false</c> if the orchestration failed, <c>true</c> otherwise. 
 	 * @throws Exception
 	 */
 	public boolean run() throws Exception
 	{	
-		// Run initialization in order to transform the adjacent list into
-		// a list of pair <nodeID, neighborID> and get the number of nodes in the graph
+		// Run initialization in order to transform the adjacent list or cluster list into
+		// a list of pair <nodeID, neighborID>.
 		InitializationDriver init = new InitializationDriver( this.input, false );
 		if ( init.run( null ) != 0 )
 			return exit( "0" );
 		
-		// Cycle for log2(N) steps, where N → number of nodes 
-		int logN = (int) Math.ceil( Math.log( init.getNumNodes() ) / Math.log( 2 ) ); 
-		int last_iteration = 2*logN;
-		for ( int i = 0; i < last_iteration; i = i+2 )
+		StarDriver largeStar, smallStar;
+		int i = 0;
+		do
 		{
-			StarDriver largeStar = new StarDriver( StarDriverType.LARGE, this.baseInput, i, false );
+			largeStar = new StarDriver( StarDriverType.LARGE, this.baseInput, i, false );
 			if ( largeStar.run( null ) != 0 )
-				return exit( Integer.toString(i) );
+				return exit( "_" + i );
 			
 			// Delete previous output
-			this.fs.delete( new Path( this.baseInput + "_" + i ), true  );
+			this.fs.delete( this.baseInput.suffix( "_" + i ), true  );
+			i++;
 			
-			StarDriver smallStar = new StarDriver( StarDriverType.SMALL, this.baseInput, i + 1, false );
+			smallStar = new StarDriver( StarDriverType.SMALL, this.baseInput, i, false );
 			if ( smallStar.run( null ) != 0 )
-				return exit( Integer.toString( i + 1 ) );
+				return exit( "_" + i );
 			
 			// Delete previous output
-			this.fs.delete( new Path( this.baseInput + "_" + ( i + 1 ) ), true  );
+			this.fs.delete( this.baseInput.suffix( "_" + i ), true  );
+			i++;
 		}
+		while ( largeStar.getNumChanges() + smallStar.getNumChanges() != 0 );
 		
 		// Run it in order to transform the list of pair <nodeID, neighborID> into sets of nodes (clusters)
-		TerminationDriver term = new TerminationDriver( this.baseInput + "_" + last_iteration, this.baseInput + "_out", false );
+		TerminationDriver term = new TerminationDriver( this.baseInput.suffix( "_" + i ), this.baseInput.suffix( "_out" ), false );
 		if ( term.run( null ) != 0 )
-			return exit( Integer.toString( last_iteration ) );
+			return exit( "_" + i );
 
 		// Delete last iteration
-		this.fs.delete( new Path( this.baseInput + "_" + last_iteration ), true  );
-		
-		// Run it in order to check if the clusters are well formed
-		CheckDriver check = new CheckDriver( this.baseInput + "_out", false );
-		if ( check.run( null ) != 0 )
-			return exit( "_out" );		
-		
-		// Create an clusters data structure
-		this.clusters = new Clusters( fs, new Path( this.baseInput + "_out" ), term.getNumClusters() );		
+		this.fs.delete(  this.baseInput.suffix( "_" + i ), true  );
+			
 		return true;
-	}
-	
-	/**
-	 * Return \see Clusters data structure.
-	 * @return 	\see Clusters data structure.
-	 */
-	public Clusters getResult()
-	{
-		return this.clusters;
 	}
 }

@@ -1,6 +1,6 @@
 /**
  *	@file LargeStarReducer.java
- *	@brief Reducer task of the \ref StarDriver Job.
+ *	@brief Reducer task of the \see StarDriver Job.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -25,13 +25,12 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
-/** Reducer task of the \ref StarDriver Job. */
-public class StarReducer extends Reducer<NodesPair, IntWritable, IntWritable, IntWritable> 
+import pad.StarDriver.UtilCounters;
+
+/** Reducer task of the \see StarDriver Job. */
+public class StarReducer extends Reducer<NodesPairWritable, IntWritable, IntWritable, IntWritable> 
 {
-	public static final Logger LOG = Logger.getLogger( StarReducer.class );
 	private static final IntWritable MINUS_ONE = new IntWritable( -1 );
 	private IntWritable nodeID = new IntWritable();
 	private IntWritable minNodeID = new IntWritable();
@@ -45,7 +44,6 @@ public class StarReducer extends Reducer<NodesPair, IntWritable, IntWritable, In
 	*/
 	public void setup( Context context )
 	{
-		LOG.setLevel( Level.ERROR );
 		smallStar = context.getConfiguration().get( "type" ).equals( "SMALL" );
 	}
 	
@@ -61,8 +59,10 @@ public class StarReducer extends Reducer<NodesPair, IntWritable, IntWritable, In
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void reduce( NodesPair pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
+	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
 	{
+		long numProducedPairs = 0;
+		
 		// This means that the nodeID is isolated, so we emit it unchanged
 		if ( pair.NeighborID == -1 )
 		{
@@ -79,9 +79,7 @@ public class StarReducer extends Reducer<NodesPair, IntWritable, IntWritable, In
 		if ( smallStar && ( pair.NodeID != minNodeID.get() ) )
 		{
 			nodeID.set( pair.NodeID );
-			// Emit bidirectional link
-			context.write( nodeID, minNodeID );
-			context.write( minNodeID, nodeID );			
+			context.write( nodeID, minNodeID );		
 		}
 		
 		// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
@@ -98,13 +96,17 @@ public class StarReducer extends Reducer<NodesPair, IntWritable, IntWritable, In
 			
 			if ( cond )
 			{
-				// Emit bidirectional link
 				context.write( neighbor, minNodeID );
-				context.write( minNodeID, neighbor );
+				numProducedPairs++;
 			}
 			
 			// Store the last neighborId that we have processed.
 			lastNodeSeen = neighbor.get();
 		}
+		
+		// If the NodeID has not the minimum label means that the produced pairs will be different,
+		// so we increment the number of changes by the number of produced pairs
+		if ( pair.NodeID != minNodeID.get() )
+			context.getCounter( UtilCounters.NUM_CHANGES ).increment( numProducedPairs );
 	}
 }

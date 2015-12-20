@@ -25,12 +25,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
@@ -43,8 +43,8 @@ public class TerminationDriver extends Configured implements Tool
 	/** Counter used to count the number of clusters found. */
 	public enum UtilCounters { NUM_CLUSTERS };
 	
-	private final String graphInput;
-	private final String output;
+	private final Path graphInput;
+	private final Path output;
 	private final boolean verbose;
 	private int numClusters;
 	
@@ -54,7 +54,7 @@ public class TerminationDriver extends Configured implements Tool
 	* @param output		path of the output folder.
 	* @param verbose	if <c>true</c> shows on screen the messages of the Job execution.
 	*/
-	public TerminationDriver( String graphInput, String output, boolean verbose )
+	public TerminationDriver( Path graphInput, Path output, boolean verbose )
 	{
 		this.graphInput = graphInput;
 		this.output = output;
@@ -75,24 +75,24 @@ public class TerminationDriver extends Configured implements Tool
 		Job job = new Job( conf, "TerminationDriver" );
 		job.setJarByClass( TerminationDriver.class );
 		
-		job.setMapOutputKeyClass( NodesPair.class );
+		job.setMapOutputKeyClass( NodesPairWritable.class );
 		job.setMapOutputValueClass( IntWritable.class );
-		job.setOutputKeyClass( IntWritable.class );
-		job.setOutputValueClass( Text.class );
+		job.setOutputKeyClass( ClusterWritable.class );
+		job.setOutputValueClass( NullWritable.class );
 		
 		job.setMapperClass( TerminationMapper.class );
 		job.setPartitionerClass( NodePartitioner.class );
 		job.setGroupingComparatorClass( NodeGroupingComparator.class );
 		job.setReducerClass( TerminationReducer.class );
 	
-		job.setInputFormatClass( TextInputFormat.class );
-		job.setOutputFormatClass( TextOutputFormat.class );
+		job.setInputFormatClass( SequenceFileInputFormat.class );
+		job.setOutputFormatClass( SequenceFileOutputFormat.class );
 	
-		Path outputPath = new Path ( output );
-		FileInputFormat.addInputPath( job, new Path( graphInput ) );
+		Path outputPath = this.output;
+		FileInputFormat.addInputPath( job, this.graphInput );
 		FileOutputFormat.setOutputPath( job, outputPath );
 		
-		if ( !job.waitForCompletion( verbose ) )
+		if ( !job.waitForCompletion( this.verbose ) )
 			return 1;
 		
 		this.numClusters = (int) job.getCounters().findCounter( UtilCounters.NUM_CLUSTERS ).getValue();

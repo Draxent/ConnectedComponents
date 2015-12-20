@@ -1,6 +1,6 @@
 /**
  *	@file TerminationReducer.java
- *	@brief Reducer task of the \ref TerminationDriver Job.
+ *	@brief Reducer task of the \see TerminationDriver Job.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -26,72 +26,45 @@ import java.io.IOException;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import pad.TerminationDriver.UtilCounters;
 
-/**	Reducer task of the \ref TerminationDriver Job. */
-public class TerminationReducer extends Reducer<NodesPair, IntWritable, IntWritable, NullWritable> 
+/**	Reducer task of the \see TerminationDriver Job. */
+public class TerminationReducer extends Reducer<NodesPairWritable, IntWritable, ClusterWritable, NullWritable> 
 {
-	public static final Logger LOG = Logger.getLogger( TerminationReducer.class );
-	private static final String BASE_NAME = "cluster_";
 	private static final NullWritable NULL = NullWritable.get();
-	private IntWritable nodeID = new IntWritable();
-	private MultipleOutputs<IntWritable, NullWritable> mos;
-	
-	/**
-	* Setup method of the this TerminationReducer class.
-	* Initialize the MultipleOutputs object used to write the nodes of each cluster found in a distinct file.
-	* @param context	context of this Job.
-	* @throws IOException, InterruptedException
-	*/
-	protected void setup( Context context ) throws IOException, InterruptedException
-	{
-		LOG.setLevel( Level.ERROR );
-		mos = new MultipleOutputs<IntWritable, NullWritable>( context );
-	}
+	private ClusterWritable cluster = new ClusterWritable();
 	
 	/**
 	* Reduce method of the this TerminationReducer class.
-	* For each NodeID, we emit this node and all its neighbors in a distinct file.
+	* For each NodeID, we add that node and all its neighbors to the ClusterWritable object; than we emit it.
 	* Than we increment the NUM_CLUSTERS of \see pad.TerminationDriver.UtilCounters by one.
 	* @param pair			pair used to implement the secondary sort, \see NodesPair.
 	* @param neighborhood	list of neighbors.
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void reduce( NodesPair pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
+	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
 	{
-		String baseOutputPath = BASE_NAME + pair.NodeID;
-		
+		// Clear the cluster. We have a distinct cluster for each key.
+		cluster.clear();
+
 		// The cluster is surely composed by this node that is also the minimum label node
 		// thanks to the convergence properties of Small-Star and Large-Star. 
-		nodeID.set( pair.NodeID  );
-		mos.write( nodeID, NULL, baseOutputPath );
+		cluster.add( pair.NodeID );
 		
 		// If the node is not alone
 		if ( pair.NeighborID != -1 )
 		{
 			// Add to the cluster all the neighbors of the node,
-			// we know that the neighbors are sort in ascending order
+			// we know that the neighbors are sort in ascending order thanks to the secondary order.
 			for ( IntWritable neighbor : neighborhood )
-				mos.write( neighbor, NULL, baseOutputPath );
+				cluster.add( neighbor.get() );
 		}
 		
 		// Increment the number of clusters
 		context.getCounter( UtilCounters.NUM_CLUSTERS ).increment( 1 );
-	}
-	
-	/**
-	* Cleanup method of the this TerminationReducer class.
-	* Close the MultipleOutputs object.
-	* @param context	context of this Job.
-	* @throws IOException, InterruptedException
-	*/
-	protected void cleanup( Context context ) throws IOException, InterruptedException
-	{
-		mos.close();
+		// Emit the cluster
+		context.write( cluster, NULL );
 	}
 }

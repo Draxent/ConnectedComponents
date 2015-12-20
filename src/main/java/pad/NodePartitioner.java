@@ -1,5 +1,5 @@
 /**
- *	@file LargeStarPartitioner.java
+ *	@file NodePartitioner.java
  *	@brief Thanks to this class, the keys (\see NodesPair) are partitioned only considering the first component, i.e NodeID.
  *  @author Federico Conte (draxent)
  *  
@@ -25,7 +25,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 /**	Thanks to this class, the keys (\see NodesPair) are partitioned only considering the first component, i.e NodeID. */
-public class NodePartitioner extends Partitioner<NodesPair, IntWritable>
+public class NodePartitioner extends Partitioner<NodesPairWritable, IntWritable>
 {
 	/**
 	* Choose the Reducer identifier to which send the record using only the NodeID information.
@@ -34,7 +34,7 @@ public class NodePartitioner extends Partitioner<NodesPair, IntWritable>
 	* @param numPartitions	number of Reducer used.
 	* @return 				Reducer identifier to which send this record.
 	*/
-	public int getPartition( NodesPair pair, IntWritable _, int numPartitions )
+	public int getPartition( NodesPairWritable pair, IntWritable _, int numPartitions )
 	{
 		return pair.NodeID % numPartitions;
 	}

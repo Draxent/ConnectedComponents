@@ -1,6 +1,6 @@
 /**
- *	@file InitializationTest.java
- *	@brief Test the \see InitializationDriver Job.
+ *	@file TranslatorTest.java
+ *	@brief Test the \see TranslatorDriver Job.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -23,16 +23,14 @@ package test;
 
 import java.io.IOException;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import pad.InitializationDriver;
 import test.TranslatorDriver.DirectionTranslation;
 
-/**	Test the \see InitializationDriver Job. */
-public class InitializationTest
+/**	Test the \see TranslatorDriver Job. */
+public class TranslatorTest
 {
 	static FileSystem fs;
 	static Path input;
@@ -45,27 +43,27 @@ public class InitializationTest
 	
 	public static void main( String[] args ) throws Exception 
 	{
-		if ( args.length != 1 )
+		if ( args.length != 2 )
 		{
-			System.out.println( "Usage: InitializationTest <graph_input>" );
+			System.out.println( "Usage: TranslatorTest <graph_input> <direction>" );
 			System.exit(1);
 		}
+		
 		fs = FileSystem.get( new Configuration() );
-		input = new Path( FilenameUtils.removeExtension( args[0] ) + "_0" );
+		input = new Path( args[0] );
 		
-		System.out.println( "Start InitializationDriver. " );
-		InitializationDriver init = new InitializationDriver( args[0], true );
-		if ( init.run( null ) != 0 ) exit( "" );
-		System.out.println( "End InitializationDriver." );
+		DirectionTranslation direction;
+		args[1] = args[1].toLowerCase();
 		
-		System.out.println( "Start TranslatorDriver Pair2Text. " );
-		TranslatorDriver trans = new TranslatorDriver( input, DirectionTranslation.Pair2Text );
-		if ( trans.run( null ) != 0 ) exit( "_transl" );
-		System.out.println( "End TranslatorDriver Pair2Text." );
+		if ( args[1].equals( "pair2text" ) ) direction = DirectionTranslation.Pair2Text;
+		else if ( args[1].equals( "text2pair" ) ) direction = DirectionTranslation.Text2Pair;
+		else direction = DirectionTranslation.Cluster2Text;
 		
-		// Delete previous output and rename result
-		fs.delete( input, true  );
-		fs.rename( input.suffix( "_transl" ), input );
+		System.out.println( "Start TranslatorDriver " + direction.toString() + "." );
+		TranslatorDriver trans = new TranslatorDriver( input, direction );
+		if ( trans.run( null ) != 0 )
+			exit( "_transl" );
+		System.out.println( "End TranslatorDriver " + direction.toString() + "." );
 
 		System.exit( 0 );
 	}

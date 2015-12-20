@@ -2,7 +2,7 @@
 
 # VARIABLES
 HADOOP_HOME=/home/$USER/hadoop-1.2.1
-WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents
+WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents2
 JAR_PATH=target/connectedComponents-1.0-SNAPSHOT.jar
 DATASET=$WORKING_DIR/data
 

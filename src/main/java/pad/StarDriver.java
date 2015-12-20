@@ -27,21 +27,25 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
 /**	Driver of the Job responsible for executing the Small-Star or Large-Star operation on the input graph. */
 public class StarDriver extends Configured implements Tool
 {
+	/** Counter used to count the number of changes occurred during the operation Small-Star or Large-Star. */
+	public enum UtilCounters { NUM_CHANGES };
+	/** The StarDriver can be of type Large-StarDriver or Small-StarDriver */
 	public enum StarDriverType { LARGE, SMALL };
 	private final String title;
 	private final StarDriverType type;
-	private final String graphInput;
-	private final String graphOutput;
+	private final Path graphInput;
+	private final Path graphOutput;
 	private final boolean verbose;
+	private long numChanges;
 	
 	/**
 	* Initializes a new instance of the StarDriver class.
@@ -50,12 +54,12 @@ public class StarDriver extends Configured implements Tool
 	* @param iteration	identify the input path and output path used by this Job.
 	* @param verbose	if <c>true</c> shows on screen the messages of the Job execution.
 	*/
-	public StarDriver( StarDriverType type, String graphInput, int iteration, boolean verbose )
+	public StarDriver( StarDriverType type, Path graphInput, int iteration, boolean verbose )
 	{
 		this.type = type;
 		this.title = type.equals( StarDriverType.SMALL ) ? "Small-Star" + iteration : "Large-Star" + iteration;
-		this.graphInput = graphInput + "_" + iteration;
-		this.graphOutput = graphInput + "_" + ( iteration + 1 );
+		this.graphInput = graphInput.suffix( "_" + iteration );
+		this.graphOutput = graphInput.suffix( "_" + ( iteration + 1 ) );
 		this.verbose = verbose;
 	}
 	
@@ -74,22 +78,36 @@ public class StarDriver extends Configured implements Tool
 		Job job = new Job( conf, this.title );
 		job.setJarByClass( StarDriver.class );
 	
-		job.setMapOutputKeyClass( NodesPair.class );
+		job.setMapOutputKeyClass( NodesPairWritable.class );
 		job.setMapOutputValueClass( IntWritable.class );
 		job.setOutputKeyClass( IntWritable.class );
 		job.setOutputValueClass( IntWritable.class );
 	
 		job.setMapperClass( StarMapper.class );
+		job.setCombinerClass( StarCombiner.class );
 		job.setPartitionerClass( NodePartitioner.class );
 		job.setGroupingComparatorClass( NodeGroupingComparator.class );
 		job.setReducerClass( StarReducer.class );
 	
-		job.setInputFormatClass( TextInputFormat.class );
-		job.setOutputFormatClass( TextOutputFormat.class );
+		job.setInputFormatClass( SequenceFileInputFormat.class );
+		job.setOutputFormatClass( SequenceFileOutputFormat.class );
 	
-		FileInputFormat.addInputPath( job, new Path ( graphInput ) );
-		FileOutputFormat.setOutputPath( job, new Path ( graphOutput ) );
+		FileInputFormat.addInputPath( job, graphInput );
+		FileOutputFormat.setOutputPath( job, graphOutput );
 
-		return job.waitForCompletion( verbose ) ? 0 : 1;
+		if ( !job.waitForCompletion( verbose ) )
+			return 1;
+		
+		this.numChanges = job.getCounters().findCounter( UtilCounters.NUM_CHANGES ).getValue();
+		return 0;
+	}
+	
+	/**
+	 * Return the number of changes occurred during the operation Small-Star or Large-Star.
+	 * @return 	number of changes.
+	 */
+	public long getNumChanges()
+	{
+		return this.numChanges;
 	}
 }

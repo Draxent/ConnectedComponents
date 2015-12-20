@@ -30,16 +30,17 @@ import org.apache.hadoop.fs.Path;
 
 import pad.StarDriver;
 import pad.StarDriver.StarDriverType;
+import test.TranslatorDriver.DirectionTranslation;
 
 /**	Test the \see StarDriver Job. */
 public class StarTest
 {
 	static FileSystem fs;
-	static String graphInput;
+	static Path input;
 	
-	public static void exit() throws IllegalArgumentException, IOException
+	public static void exit( Path p ) throws IllegalArgumentException, IOException
 	{
-		fs.delete( new Path( graphInput + "_1" ), true  );
+		fs.delete( p, true  );
 		System.exit( 1 );
 	}
 	
@@ -52,21 +53,44 @@ public class StarTest
 		}
 		
 		fs = FileSystem.get( new Configuration() );
-		graphInput = FilenameUtils.removeExtension( args[1] );
+		input = new Path( FilenameUtils.removeExtension( args[1] ) );
+		Path true_input = new Path( args[1] );
+		
+		// Convert text input into pair of nodes
+		System.out.println( "Start TranslatorDriver Text2Pair. " );
+		TranslatorDriver trans = new TranslatorDriver( true_input, DirectionTranslation.Text2Pair );
+		if ( trans.run( null ) != 0 )
+			exit( true_input.suffix( "_transl" ) );
+		System.out.println( "End TranslatorDriver Text2Pair." );
 		
 		// Rename input in order to match the StarDriver expected input
-		fs.rename( new Path( args[1] ), new Path( graphInput + "_0" ) );
+		fs.delete( true_input, true  );
+		fs.rename( true_input.suffix( "_transl" ), input.suffix( "_0" ) );
 		
+		// Check what Job we need to execute: Small-Star or Large-Star
 		StarDriverType type = args[0].toLowerCase().equals("small") ? StarDriverType.SMALL : StarDriverType.LARGE;
 		String name = ( type == StarDriverType.SMALL ) ? "Small" : "Large";
 		
+		// Execute the Small-Star or Large-Star Job
 		System.out.println( "Start " + name + "-Star." );
-		StarDriver largeStar = new StarDriver( type, graphInput, 0, true );
-		if ( largeStar.run( null ) != 0 ) exit();
+		StarDriver star = new StarDriver( type, input, 0, true );
+		if ( star.run( null ) != 0 )
+			exit( input.suffix( "_1" ) );
 		System.out.println( "End " + name + "-Star.");
 		
+		// Convert pair of nodes into text.
+		System.out.println( "Start TranslatorDriver Pair2Text. " );
+		TranslatorDriver trans2 = new TranslatorDriver( input.suffix( "_1" ), DirectionTranslation.Pair2Text );
+		if ( trans2.run( null ) != 0 )
+			exit( input.suffix( "_1_transl" ) );
+		System.out.println( "End TranslatorDriver Pair2Text." );
+		
 		// Rename input back, in order to leave hdfs consistent
-		fs.rename( new Path( graphInput + "_0" ), new Path( args[1] ) );
+		fs.rename( input.suffix( "_0" ), true_input );
+		
+		// Delete previous output and rename result
+		fs.delete( input.suffix( "_1" ), true  );
+		fs.rename( input.suffix( "_1_transl" ), input.suffix( "_1" ) );
 		
 		System.exit( 0 );
 	}

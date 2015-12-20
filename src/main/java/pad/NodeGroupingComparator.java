@@ -34,7 +34,7 @@ public class NodeGroupingComparator extends WritableComparator
 	/** Initializes a new instance of the NodeGroupingComparator class. */
 	protected NodeGroupingComparator()
 	{
-		super( NodesPair.class, true );
+		super( NodesPairWritable.class, true );
 	}
 	
 	/**
@@ -49,8 +49,8 @@ public class NodeGroupingComparator extends WritableComparator
 	@SuppressWarnings("rawtypes")
 	public int compare( WritableComparable key1, WritableComparable key2 )
 	{
-		NodesPair pair1 = (NodesPair)key1;
-		NodesPair pair2 = (NodesPair)key2;
+		NodesPairWritable pair1 = (NodesPairWritable)key1;
+		NodesPairWritable pair2 = (NodesPairWritable)key2;
 		
 		return pair1.NodeID - pair2.NodeID;
 	}

@@ -28,19 +28,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import pad.CheckDriver;
 import pad.TerminationDriver;
+import test.TranslatorDriver.DirectionTranslation;
 
 /**	Test the \see TerminationDriver Job. */
 public class TerminationTest
 {
-	static FileSystem fs;	
-	static String graphInput;
-	static String output;
+	static FileSystem fs;
 	
-	public static void exit( ) throws IllegalArgumentException, IOException
+	public static void exit( Path p ) throws IllegalArgumentException, IOException
 	{
-		fs.delete( new Path( output ), true  );
+		fs.delete( p, true  );
 		System.exit( 1 );
 	}
 	
@@ -53,26 +51,40 @@ public class TerminationTest
 		}
 		
 		fs = FileSystem.get( new Configuration() );
-		graphInput = FilenameUtils.removeExtension( args[0] );
-		output = args[1];
-		String expected_input = graphInput + "_0";
+		Path input = new Path( args[0] );
+		Path baseInput = new Path( FilenameUtils.removeExtension( args[0] ) );
+		Path output = new Path ( args[1] );
 		
-		// Rename input in order to match the StarDriver expected input
-		fs.rename( new Path( args[0] ), new Path( expected_input ) );
+		// Convert text input into pair of nodes
+		System.out.println( "Start TranslatorDriver Text2Pair. " );
+		TranslatorDriver trans = new TranslatorDriver( input, DirectionTranslation.Text2Pair );
+		if ( trans.run( null ) != 0 )
+			exit( input.suffix( "_transl" ) );
+		System.out.println( "End TranslatorDriver Text2Pair." );
+		
+		// Rename input in order to match the TerminationDriver expected input
+		fs.delete( input, true  );
+		fs.rename( input.suffix( "_transl" ), baseInput.suffix( "_0" ) );
 		
 		System.out.println( "Start TerminationDriver. " );
-		TerminationDriver term = new TerminationDriver( expected_input, output, true );
-		if ( term.run( null) != 0 ) exit();
+		TerminationDriver term = new TerminationDriver( baseInput.suffix( "_0" ), output, true );
+		if ( term.run( null ) != 0 )
+			exit( baseInput.suffix( "_0" ) );
 		System.out.println( "End TerminationDriver." );
 		
-		// Rename input back, in order to leave hdfs consistent
-		fs.rename( new Path( expected_input ), new Path( args[0] ) );
+		// Convert cluster into text.
+		System.out.println( "Start TranslatorDriver Cluster2Text. " );
+		TranslatorDriver trans2 = new TranslatorDriver( output, DirectionTranslation.Cluster2Text );
+		if ( trans2.run( null ) != 0 )
+			exit( output.suffix( "_transl" ) );
+		System.out.println( "End TranslatorDriver Cluster2Text." );
 		
-		System.out.println( "Start CheckDriver. " );
-		CheckDriver check = new CheckDriver( output, true );
-		if ( check.run( null ) != 0 )
-			System.exit( 1 );
-		System.out.println( "End CheckDriver." );
+		// Rename input back, in order to leave hdfs consistent
+		fs.rename( baseInput.suffix( "_0" ), input );
+		
+		// Delete previous output and rename result
+		fs.delete( output, true  );
+		fs.rename( output.suffix( "_transl" ), output );
 
 		System.exit( 0 );
 	}

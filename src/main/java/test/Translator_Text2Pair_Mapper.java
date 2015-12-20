@@ -1,8 +1,8 @@
 /**
- *	@file CheckMapper.java
- *	@brief Mapper task of the \ref CheckDriver Job.
+ *	@file Translator_Text2Pair_Mapper.java
+ *	@brief Mapper of \see TranslatorDriver.
  *  @author Federico Conte (draxent)
- *
+ *  
  *	Copyright 2015 Federico Conte
  *	https://github.com/Draxent/ConnectedComponents
  * 
@@ -19,47 +19,42 @@
  *	limitations under the License. 
  */
 
-package pad;
+package test;
 
 import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
-/**	Mapper task of the \ref CheckDriver Job. */
-public class CheckMapper extends Mapper<LongWritable, Text, IntWritable, NullWritable> 
+/** Mapper of \see TranslatorDriver. */
+public class Translator_Text2Pair_Mapper extends Mapper<LongWritable, Text, IntWritable, IntWritable> 
 {
-	private static final NullWritable NULL = NullWritable.get();
-	public static final Logger LOG = Logger.getLogger( CheckMapper.class );
 	private IntWritable nodeID = new IntWritable();
+	private IntWritable neighborID = new IntWritable();
 	
-	public void setup( Context context )
-	{
-		LOG.setLevel( Level.ERROR );
-	}
-
 	/**
-	* Map method of the this CheckMapper class.
-	* Read the node value, present in each line; transform it in a IntWritable and write it into the context.
+	* Map method of the this Translator_Text2Pair_Mapper class.
+	* Extract the <nodeID, NeighborID> from the line and emit it.
 	* @param _			offset of the line read, not used in this method.
 	* @param value		text of the line read.
 	* @param context	context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void map( LongWritable _, Text value, Context context ) throws IOException, InterruptedException 
+	public void map( LongWritable _, Text value, Context context ) throws IOException, InterruptedException
 	{
 		// Read line.
 		String line = value.toString();
-
-		// Extract the nodeID.
-		nodeID.set( Integer.parseInt( line ) );
 		
-		// Write the nodeID, as key, in the context.
-		context.write( nodeID, NULL );
+		// Split the line on the tab character.
+		String userID_neighborID[] = line.split( "\t" );
+		
+		// Extract the nodeID and neighbourID.
+		nodeID.set( Integer.parseInt( userID_neighborID[0] ) );
+		neighborID.set( Integer.parseInt( userID_neighborID[1] ) );
+		
+		// Emit the pair
+		context.write( nodeID, neighborID );
 	}
 }

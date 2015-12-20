@@ -2,7 +2,7 @@
 
 # VARIABLES
 HADOOP_HOME=/home/$USER/hadoop-1.2.1
-WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents
+WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents2
 JAR_PATH=target/connectedComponents-1.0-SNAPSHOT.jar
 DATASET=$WORKING_DIR/data
 
@@ -36,29 +36,20 @@ do
 		echo "TerminationTest Job completed correctly !"
 	fi
 
-	hdfs_outputs=$($HADOOP_HOME/bin/hadoop fs -ls $output_dir | sed '1d;s/  */ /g' | cut -d\  -f8 | grep -e "cluster*" | xargs -n 1 basename)
-	# For each cluster produced by the Job	
-	for output_file in $hdfs_outputs
-	do
-		correct_file="output_${number}_${output_file}.txt"
-		final_output_file="output_out_${number}_${output_file}.txt"
+	correct_file="cluster_${number}.txt"
+	final_output_file="cluster_out_${number}.txt"
 
-		# Copy the cluster locally
-		$HADOOP_HOME/bin/hadoop fs -get $output_dir/$output_file $DATASET/$final_output_file
-		echo "Added $DATASET/$final_output_file"
-
-		./compare_result.sh $base_input $final_output_file $correct_file
-		if [ $? != 0 ]; then
-			# Clean file on hadoop
-			$HADOOP_HOME/bin/hadoop fs -rmr $output_dir
-			$HADOOP_HOME/bin/hadoop fs -rmr $base_input
-			exit 1
-		fi		
-	done
+	# Merge the results of the Job and copy the output file locally
+	$HADOOP_HOME/bin/hadoop fs -getmerge $output_dir $DATASET/$final_output_file
 
 	# Clean file on hadoop
 	$HADOOP_HOME/bin/hadoop fs -rmr $output_dir
 	$HADOOP_HOME/bin/hadoop fs -rmr $base_input
+
+	$WORKING_DIR/bin/compare_result.sh $base_input $final_output_file $correct_file
+	if [ $? != 0 ]; then
+		exit 1
+	fi
 
 	echo -e "\033[1;92mTest on $base_input compleated correctly !\033[0m"
 done

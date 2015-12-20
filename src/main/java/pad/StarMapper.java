@@ -1,6 +1,6 @@
 /**
  *	@file LargeStartMapper.java
- *	@brief Mapper task of the \ref StarDriver Job.
+ *	@brief Mapper task of the \see StarDriver Job.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -24,19 +24,13 @@ package pad;
 import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
-/** Mapper task of the \ref StarDriver Job. */
-public class StarMapper extends Mapper<LongWritable, Text, NodesPair, IntWritable> 
+/** Mapper task of the \see StarDriver Job. */
+public class StarMapper extends Mapper<IntWritable, IntWritable, NodesPairWritable, IntWritable> 
 {
-	public static final Logger LOG = Logger.getLogger( StarMapper.class );
 	private boolean smallStar;
-	private NodesPair pair = new NodesPair();
-	private IntWritable neighbourID = new IntWritable();
+	private NodesPairWritable pair = new NodesPairWritable();
 
 	/**
 	* Setup method of the this StarMapper class.
@@ -46,41 +40,68 @@ public class StarMapper extends Mapper<LongWritable, Text, NodesPair, IntWritabl
 	*/
 	public void setup( Context context )
 	{
-		LOG.setLevel( Level.ERROR );
 		smallStar = context.getConfiguration().get( "type" ).equals( "SMALL" );
 	}
 	
 	/**
 	* Map method of the this StarMapper class.
-	* Extract the <nodeID, NeighborID> from the line.
-	* If it is a Large-Star Mapper, it always emits the pair read.
-	* If it is a Small-Star Mapper, it emits the pair read only when NeighborID is smaller than NodeID.
-	* @param _			offset of the line read, not used in this method.
-	* @param value		text of the line read.
+	* If it is a Large-Star Mapper, it emits the pairs <u,v> and <v,u>.
+	* If it is a Small-Star Mapper, it emits the pair <max(u,v), min(u,v)>.
+	* @param nodeID			identifier of the node.
+	* @param neighborID		identifier of the neighbor.
 	* @param context	context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void map( LongWritable _, Text value, Context context ) throws IOException, InterruptedException 
-	{
-		// Read line.
-		String line = value.toString();
-		
-		// Split the line on the tab character.
-		String nodeID_neighbourID[] = line.split( "\t" );
-		
-		// Extract the nodeID.
-		pair.NodeID = Integer.parseInt( nodeID_neighbourID[0] );
-		
-		// Extract the neighbourID.
-		pair.NeighborID =  Integer.parseInt( nodeID_neighbourID[1] );
-		neighbourID.set( pair.NeighborID );
+	public void map( IntWritable nodeID, IntWritable neighborID, Context context ) throws IOException, InterruptedException 
+	{		
+		// if the node is alone, emit it like is it in order to keep that information
+		if ( neighborID.get() == -1 )
+		{
+			// Set up the pair.
+			pair.NodeID = nodeID.get();
+			pair.NeighborID =  neighborID.get();
+			
+			context.write( pair, neighborID );
+			return;
+		}
 		
 		// If we are running Small-Star, we emit only when the neighborID is smaller than nodeID
-		// If we are running Large-Star, we always emit the neighbors
-		boolean cond = ( smallStar ? ( pair.NeighborID < pair.NodeID ) : true );
-
-		// Emit < (u, v) ; v >
-		if ( cond )
-			context.write( pair, neighbourID );
+		if ( smallStar )
+		{
+			// if the label of neighbor is less than the label of the node
+			if ( neighborID.get() < nodeID.get() )
+			{
+				// Set up the pair.
+				pair.NodeID = nodeID.get();
+				pair.NeighborID =  neighborID.get();
+				
+				context.write( pair, neighborID );
+			}
+			else
+			{
+				// Set up the pair.
+				pair.NodeID = neighborID.get();
+				pair.NeighborID =  nodeID.get();
+				
+				context.write( pair, nodeID );
+			}
+		}
+		// If we are running Large-Star, we always emit: <NodeID; NeighborID> and <NeighborID; NodeID>
+		else
+		{
+			// Set up the pair.
+			pair.NodeID = nodeID.get();
+			pair.NeighborID =  neighborID.get();
+			
+			// Emit <NodeID; NeighborID>
+			context.write( pair, neighborID );
+			
+			// Set up the pair.
+			pair.NodeID = neighborID.get();
+			pair.NeighborID =  nodeID.get();
+			
+			// Emit <NeighborID; NodeID>
+			context.write( pair, nodeID );
+		}
 	}
 }

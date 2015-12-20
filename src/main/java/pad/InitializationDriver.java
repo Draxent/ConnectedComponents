@@ -1,6 +1,6 @@
 /**
  *	@file InitializationDriver.java
- *	@brief Driver of the Job responsible for transforming the adjacent list into a list of pair <nodeID, neighborID>.
+ *	@brief Driver of the Job responsible for transforming the adjacent list or cluster list into a list of pair <nodeID, neighborID>.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -25,25 +25,21 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
-/**	Driver of the Job responsible for transforming the adjacent list into a list of pair <nodeID, neighborID>. */
+/**	Driver of the Job responsible for transforming the adjacent list or cluster list into a list of pair <nodeID, neighborID>. */
 public class InitializationDriver extends Configured implements Tool
 {	
-	/** Counter used to count the number of nodes in the graph. */
-	public enum UtilCounters { NUM_NODES };
-	
-	private final String graphInput;
-	private final String graphOutput;
+	private final Path graphInput;
+	private final Path graphOutput;
 	private final boolean verbose;
-	private long numNodes;
 	
 	/**
 	* Initializes a new instance of the InitializationDriver class.
@@ -52,9 +48,9 @@ public class InitializationDriver extends Configured implements Tool
 	*/
 	public InitializationDriver( String graphInput, boolean verbose )
 	{
-		this.graphInput = graphInput;
+		this.graphInput = new Path( graphInput );
 		// Writes the output onto the directory which will be taken in input during the first loop iteration
-		this.graphOutput = FilenameUtils.removeExtension( graphInput ) + "_0";
+		this.graphOutput = new Path( FilenameUtils.removeExtension( graphInput ) + "_0" );
 		this.verbose = verbose;
 	}
 	
@@ -72,31 +68,21 @@ public class InitializationDriver extends Configured implements Tool
 		Job job = new Job( conf, "InitializationDriver" );
 		job.setJarByClass( InitializationDriver.class );
 		
-		job.setOutputKeyClass( Text.class );
-		job.setOutputValueClass( Text.class );
+		job.setOutputKeyClass( IntWritable.class );
+		job.setOutputValueClass( IntWritable.class );
 	
 		job.setMapperClass( InitializationMapper.class );
 		job.setNumReduceTasks( 0 );
 	
 		job.setInputFormatClass( TextInputFormat.class );
-		job.setOutputFormatClass( TextOutputFormat.class );
+		job.setOutputFormatClass( SequenceFileOutputFormat.class );
 	
-		FileInputFormat.addInputPath( job, new Path( this.graphInput ) );
-		FileOutputFormat.setOutputPath( job, new Path( this.graphOutput ) );
+		FileInputFormat.addInputPath( job, this.graphInput );
+		FileOutputFormat.setOutputPath( job, this.graphOutput );
 		
 		if ( !job.waitForCompletion( verbose ) )
 			return 1;
-		
-		this.numNodes = job.getCounters().findCounter( UtilCounters.NUM_NODES ).getValue();
-		return 0;
-	}
 	
-	/**
-	 * Return the number of nodes in the graph.
-	 * @return 	number of nodes.
-	 */
-	public long getNumNodes()
-	{
-		return this.numNodes;
+		return 0;
 	}
 }

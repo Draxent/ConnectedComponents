@@ -21,15 +21,13 @@
 
 package test;
 
-import pad.Cluster;
-import pad.Clusters;
 import pad.ConnectedComponents;
 
 /**	Test the \see ConnectedComponents class. */
 public class ConnectedComponentsTest
 {
 	public static void main( String[] args ) throws Exception 
-	{
+	{	
 		if ( args.length != 1 )
 		{
 			System.out.println( "Usage: ConnectedComponentsTest <graph_input>" );
@@ -41,13 +39,6 @@ public class ConnectedComponentsTest
 		if ( !cc.run() )
 			System.exit( 1 );
 		System.out.println( "End ConnectedComponents." );
-		
-		Clusters clusters = cc.getResult();
-		
-		for ( Cluster cluster : clusters )
-			cluster.print();
-		
-		clusters.destroy();
 
 		System.exit( 0 );
 	}

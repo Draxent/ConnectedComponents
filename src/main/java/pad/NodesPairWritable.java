@@ -1,6 +1,6 @@
 /**
- *	@file NodesPair.java
- *	@brief Data structure used to wrap two nodes into a key, in order to implement the secondary sort.
+ *	@file NodesPairWritable.java
+ *	@brief Data structure used to wrap two nodes into a key; useful also to implement the secondary sort.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -27,17 +27,17 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.WritableComparable;
 
-/**	Data structure used to wrap two nodes into a key, in order to implement the secondary sort. */
-public class NodesPair implements WritableComparable<NodesPair>
+/**	Data structure used to wrap two nodes into a key; useful also to implement the secondary sort. */
+public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 {
-	/**	identifier of the node */
-	public int NodeID = -1;
-	/**	identifier of the neighbor node */
-	public int NeighborID = -1;
+	/**	Identifier of the node */
+	public Integer NodeID = new Integer( -1 );
+	/**	Identifier of the neighbor node. The default value ( minus one) means that NodeID has no neighbors. */
+	public Integer NeighborID = new Integer( -1 );
 	
 	/**
-	* Read the data out in the order it is written.
-	* @param in		input data.
+	* Deserializes the array. Read the data out in the order it is written.
+	* @param in		source for raw byte representation.
 	* @throws IOException
 	*/
 	public void readFields( DataInput in ) throws IOException
@@ -47,8 +47,8 @@ public class NodesPair implements WritableComparable<NodesPair>
 	}
 	
 	/**
-	* Write the data out in the order it is read.
-	* @param out	output data.
+	* Serializes this array. Write the data out in the order it is read.
+	* @param out	where to write the raw byte representation.
 	* @throws IOException
 	*/
 	public void write( DataOutput out ) throws IOException
@@ -75,11 +75,38 @@ public class NodesPair implements WritableComparable<NodesPair>
 	* 				<c>-1</c> if this object is smaller than the <em>other</em>.
 	* 				<c>1</c> if this object is greater than the <em>other</em>.
 	*/
-	public int compareTo( NodesPair other )
+	public int compareTo( NodesPairWritable other )
 	{
 		int result = this.NodeID - other.NodeID;
 		if( result == 0 )
 			result = this.NeighborID - other.NeighborID;
 		return result;
 	}
+	
+	/**
+	* Calculate hash code of this object.
+	* @return 		the hash code.
+	*/
+    public int hashCode()
+    {
+    	int hash1 = (this.NodeID != null) ? this.NodeID.hashCode() : 0;
+    	int hash2 = (this.NeighborID != null) ? this.NeighborID.hashCode() : 0;
+    	return (hash1 + hash2) * hash2 + hash1;
+    }
+    
+	/**
+	* Check if two objects that are instance of \see NodesPairWritable are equals.
+	* @param other	the other object with which to make comparisons.
+	* @return 		<c>true</c> if the two objects are equals, <c>false</c> otherwise.
+	*/
+    public boolean equals( Object other )
+    {
+    	if ( this == other ) return true;
+    	if ( !(other instanceof NodesPairWritable) ) return false;
+    	
+    	NodesPairWritable pair = (NodesPairWritable) other;
+		boolean cond1 = ( this.NodeID != null && pair.NodeID != null && this.NodeID.equals(pair.NodeID) );
+		boolean cond2 = ( this.NeighborID != null && pair.NeighborID != null && this.NeighborID.equals(pair.NeighborID) ); 
+		return cond1 && cond2;
+    }
 }
