@@ -18,7 +18,7 @@ The algorithm tries to implement the *"The Alternating Algorithm"* proposed in t
 
 ###Demonstration
 Below, it is shown a demostration of usage of the **ConnectedComponents** class that allows you to run the connected compontent algorithm on your graph.<br />
-This code simply creates a **ConnectedComponents** object, with *graph.txt* file as input, and calls its method **run** that produces the expected result in a folder named *graph_out*. This folder contains an **hdfs file** for each Reducer task invoked by MapReduce framework. Each of these files contains some of the clusters found in the input graph.
+This code simply creates a **ConnectedComponents** object, with *"graph.txt"* file as input, and calls its method **run** that produces the expected result in a folder named *"graph_out"*. This folder contains an **hdfs file** for each Reducer task invoked by MapReduce framework. Each of these files contains some of the clusters found in the input graph.
 
 ```Java
 package test;
@@ -43,13 +43,12 @@ public class App
 ```
 
 In this toy application, we don't work on the computed result. But you can invoke the **TranslatorTest** as follwing:
-
 ```bash
 $HADOOP_HOME/bin/hadoop jar $WORKING_DIR/$JAR_PATH test.TranslatorTest graph_out Cluster2Text
 ```
+in order to translate the result files into text format and look with your eyes by which nodes the connected component is made up.
 
-in order to translate the result files into text format and look with your eyes by which nodes the connected component is made up.\\
-Otherwise, of course, you can code a MapReduce Job to perform the operation that you are looking for taking as input the *graph_out* folder.
+Otherwise, of course, you can code a MapReduce Job to perform the operation that you are looking for taking as input the *"graph_out"* folder.
 
 ###Compile
 After you have cloned the project, to compile the program you'll need to use the following command lines:
@@ -121,14 +120,15 @@ For example, you can test the following graph:
 - *large-star_1.txt*		→	Contains the expected result for the **Large-Star** operation applied to *input_1.txt*.
 - *small-star_1.txt*		→	Contains the expected result for the **Small-Star** operation applied to *input_1.txt*.
 - *term_1.txt*				→	It is the hand-made input for the **Termination_Phase**, in this way we can check the last phase without running all the algorithm.
-- *cluster_1.txt*	→	Contains a line for each cluster found, and the set of nodes that compose each cluster are stored in ascending order. It is the final expected result, so it is the expected result for the **Termination_Phase** applied to *term_1.txt* and the expected result of the all algorithm as well. The content of the file, in this case, is the following:
-```
-1 18 19
-20
-2 4 8 10 12 13 15 16 17
-3 5 7 9 14
-6 11
-```
+- *cluster_1.txt*	→	Contains a line for each cluster found, and the set of nodes that compose each cluster are stored in ascending order. It is the final expected result, so it is the expected result for the **Termination_Phase** applied to *term_1.txt* and the expected result of the all algorithm as well.
+	The content of the file, in this case, is the following:
+	```
+	1 18 19
+	20
+	2 4 8 10 12 13 15 16 17
+	3 5 7 9 14
+	6 11
+	```
 
 In the [bin](./bin) folder, you can find a *bash script* that tests each phase for every appropriate input found in the [data](./data) folder. Pay attenction that for the *StarTest.sh* script, you need to specify the *type* of the operation as argument, like "small" or "large".<br />
 Also, verify that at least the **$HADOOP_HOME** and **$WORKING_DIR** variables are appropriately set.<br />
