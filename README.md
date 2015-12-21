@@ -121,7 +121,9 @@ For example, you can test the following graph:
 - *small-star_1.txt*		→	Contains the expected result for the **Small-Star** operation applied to *input_1.txt*.
 - *term_1.txt*				→	It is the hand-made input for the **Termination_Phase**, in this way we can check the last phase without running all the algorithm.
 - *cluster_1.txt*	→	Contains a line for each cluster found, and the set of nodes that compose each cluster are stored in ascending order. It is the final expected result, so it is the expected result for the **Termination_Phase** applied to *term_1.txt* and the expected result of the all algorithm as well.
+
 	The content of the file, in this case, is the following:
+
 	```
 	1 18 19
 	20
