@@ -20,6 +20,13 @@ sort $DATASET/$final_output_file > $DATASET/tmp.txt
 rm $DATASET/$final_output_file
 mv $DATASET/tmp.txt $DATASET/$final_output_file
 
+# Check existence of file
+if [ ! -f $DATASET/$correct_file ]; then
+	echo -e "\033[1;31mFailed to process $base_input !\033[0m"
+	echo "Correct file $correct_file do not exists."
+	exit 1
+fi
+
 # Compare the result of the Job with the expected result.
 num_differences=$(diff $DATASET/$correct_file $DATASET/$final_output_file | wc -l)
 if [ $num_differences != 0 ]; then

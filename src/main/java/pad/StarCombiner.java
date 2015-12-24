@@ -22,7 +22,6 @@
 package pad;
 
 import java.io.IOException;
-import java.util.HashSet;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -30,15 +29,9 @@ import org.apache.hadoop.mapreduce.Reducer;
 /** Combiner task of the \see StarDriver Job. */
 public class StarCombiner extends Reducer<NodesPairWritable, IntWritable, NodesPairWritable, IntWritable> 
 {	
-	private static final int MEMORY_THRESHOLD = 80;
-	private static final int CHECKS_EVERY_X_NUMBERS = 100000;
-	private HashSet<Integer> seenNeighbor = new HashSet<Integer>();
-	
 	/**
 	* Reduce method of the this StarCombiner class.
 	* It reduce the number of duplicates that are emit by the \see StarMapper.
-	* The secondary sort is not yet available, so we need an HashSet structure in order to verify
-	* whether or not we have already seen a neighbor.
 	* @param pair			pair of nodes.
 	* @param neighborhood	list of neighbors.
 	* @param context		context of this Job.
@@ -46,45 +39,20 @@ public class StarCombiner extends Reducer<NodesPairWritable, IntWritable, NodesP
 	*/
 	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
 	{
-		int count = 0;
-		seenNeighbor.clear();
-		
+		// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
+		int lastNodeSeen = -2;
 		for ( IntWritable neighbor : neighborhood )
 		{
-			pair.NeighborID = neighbor.get();
-					
 			// Skip the duplicate nodes.
-			if ( seenNeighbor.contains( pair.NeighborID ) )
+			if ( neighbor.get() == lastNodeSeen )
 				continue;
 			
+			// Emit the pair
+			pair.NeighborID = neighbor.get();
 			context.write( pair, neighbor );
 			
-			// Check the state of the memory every CHECKS_EVERY_X_NUMBERS.
-			if ( count % CHECKS_EVERY_X_NUMBERS == 0 )
-			{
-				checkMemory();
-				count = 0;
-			}
-			
-			// Store the neighborId into the HashTable
-			seenNeighbor.add( pair.NeighborID );
-			
-			// Count the number of neighbors added.
-			count++;
+			// Store the last neighborId that we have processed.
+			lastNodeSeen = neighbor.get();
 		}
-	}
-	
-	/**
-	* If the memory is starting to become a concern, free it.
-	* Even if we allowed some duplicates to go on, the logic is not altered, and we deal with
-	* duplicates neighbors in the reduce phase.
-	*/
-	private void checkMemory()
-	{
-		final long totalMemory = Runtime.getRuntime().totalMemory();
-		final long freeMemory = Runtime.getRuntime().freeMemory();
-		final float percMemUsed = ((float) (totalMemory - freeMemory) / totalMemory) * 100;
-		if ( percMemUsed > MEMORY_THRESHOLD )
-			seenNeighbor.clear();
 	}
 }

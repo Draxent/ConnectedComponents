@@ -5,7 +5,7 @@ Given a graph, this algorithm identifies the [connected components](https://en.w
 
 In the following, a **connected component** will be called as **"cluster"**.
 
-The algorithm tries to implement the *"The Alternating Algorithm"* proposed in the paper [Connected Components in MapReduce and Beyond](http://dl.acm.org/citation.cfm?id=2670997). Below, I have reported the pseudo-code of the algorithm.
+The algorithm tries to implement the *"The Alternating Algorithm"* proposed in the paper [Connected Components in MapReduce and Beyond](http://dl.acm.org/citation.cfm?id=2670997). Below, I have reported the pseudocode of the algorithm.
 
 ```
 	Input: Edges (u, v) as a set of key-value pairs <u; v>.
@@ -17,7 +17,7 @@ The algorithm tries to implement the *"The Alternating Algorithm"* proposed in t
 ```
 
 ###Demonstration
-Below, it is shown a demonstration of usage of the **ConnectedComponents** class that allows you to run the connected component algorithm on your graph.<br />
+Below, it is shown a demostration of usage of the **ConnectedComponents** class that allows you to run the connected compontent algorithm on your graph.<br />
 This code simply creates a **ConnectedComponents** object, with *"graph.txt"* file as input, and calls its method **run** that produces the expected result in a folder named *"graph_out"*. This folder contains an **hdfs file** for each Reducer task invoked by MapReduce framework. Each of these files contains some of the clusters found in the input graph.
 
 ```Java
@@ -30,7 +30,7 @@ public class App
 	public static void main( String[] args ) throws Exception 
 	{	
 		// Create the ConnectedComponents object giving to it as input an adjacency list
-		// or cluster list representing the graph stored in a file on hdfs
+		// or cluster list rappresenting the graph stored in a file on hdfs
 		ConnectedComponents cc = new ConnectedComponents( "graph.txt" );
 
 		// Run all the Jobs necessary to compute the result 
@@ -88,13 +88,13 @@ The input file can contain:
 
 ### Output
 The program will create a folder, named *${input_name}_out*, where the clusters found are stored.<br />
-In particular the output files produced by the Reducer tasks are formatted by the `SequenceFileOutputFormat<pad.ClusterWritable, org.apache.hadoop.io.NullWritable>`, where `pad.ClusterWritable` represents an array of integers and is serialized writing on the output file its size and then its elements.
+In particular the output files produced by the Reducer tasks are formatted by the `SequenceFileOutputFormat<pad.ClusterWritable, org.apache.hadoop.io.NullWritable>`, where `pad.ClusterWritable` rappresents an array of integers and is serialized writing on the output file its size and then its elements.
 
 ### Algorithm
-The algorithm, that I have implemented, has some slight difference compared to the one proposed in the paper. Below, it is shown the pseudo-code.
+The algorithm, that I have implemented, has some slight difference compared to the one proposed in the paper. Below, it is shown the pseudocode.
 
 ```
-	Input: G = (V, E) represented with an adjacency list.
+	Input: G = (V, E) rappresented with an adjacency list.
 	Input: A unique and positive label lv for every node v ∈ V .
 1:	Initialization_Phase
 2:	repeat
