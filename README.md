@@ -18,10 +18,10 @@ The algorithm tries to implement the *"The Alternating Algorithm"* proposed in t
 
 ###Demonstration
 Below, it is shown a demonstration of usage of the **ConnectedComponents** class that allows you to run the connected component algorithm on your graph.<br />
-This code simply creates a **ConnectedComponents** object, with *"graph.txt"* file as input, and calls its method **run** that produces the expected result in a folder named *"graph_out"*. This folder contains an **hdfs file** for each Reducer task invoked by MapReduce framework. Each of these files contains some of the clusters found in the input graph.
+This code simply creates a **ConnectedComponents** object, taking as input the graph and the output folder. Invoking the **run** method,  the algorithm will produce an hdfs file for each Reducer task, invoked by MapReduce framework, into the output folder. These files will contain the clusters found in the input graph.
 
 ```Java
-package test;
+package app;
 
 import pad.ConnectedComponents;
 
@@ -29,9 +29,9 @@ public class App
 {
 	public static void main( String[] args ) throws Exception 
 	{	
-		// Create the ConnectedComponents object giving to it as input an adjacency list
-		// or cluster list representing the graph stored in a file on hdfs
-		ConnectedComponents cc = new ConnectedComponents( "graph.txt" );
+		// Create ConnectedComponents object giving an adjacency/cluster
+		// list rappresenting the graph and the output folder as input
+		ConnectedComponents cc = new ConnectedComponents( new Path("graph.txt"), new Path("out") );
 
 		// Run all the Jobs necessary to compute the result 
 		if ( !cc.run() )
@@ -42,13 +42,23 @@ public class App
 }
 ```
 
-In this toy application, we don't work on the computed result. But you can invoke the **TranslatorTest** as follwing:
+In this toy application, we don't work on the computed result. But you can invoke the **TranslatorDriver** as follwing:
 ```bash
-$HADOOP_HOME/bin/hadoop jar $WORKING_DIR/$JAR_PATH test.TranslatorTest graph_out Cluster2Text
+HADOOP_HOME=/home/$USER/hadoop-1.2.1
+WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents
+JAR_PATH=$WORKING_DIR/target/connectedComponents-1.0-SNAPSHOT.jar
+HADOOP=HADOOP_HOME/bin/hadoop
+$HADOOP jar $JAR_PATH pad.TranslatorDriver Cluster2Text out outT 
 ```
-in order to translate the result files into text format and look with your eyes by which nodes the connected component is made up.
+where :
 
-Otherwise, of course, you can code a MapReduce Job to perform the operation that you are looking for taking as input the *"graph_out"* folder.
+ - `$HADOOP_HOME`: indicates the path to the root directory of hadoop;
+ - `$WORKING_DIR`: indicates the path to the directory where you have cloned the project;
+ - `$JAR_PATH`: indicates where it is located the jar file.
+
+This makes it possible to translate the result files in text and look which nodes compound the connected components.
+
+Otherwise, of course, you can code a MapReduce Job to perform the operation that you are looking for taking as input the *"out"* folder.
 
 ###Compile
 After you have cloned the project, to compile the program you'll need to use the following command lines:
@@ -62,10 +72,8 @@ mvn package
 To run the program, you'll need to use the following command line:
 
 ```bash
-$HADOOP_HOME/bin/hadoop jar target/connectedComponents-1.0-SNAPSHOT.jar test.App
+$HADOOP jar target/connectedComponents-1.0-SNAPSHOT.jar app.App
 ```
-
-where $HADOOP_HOME indicates the path to the root directory of hadoop.
 
 ### Input
 In the [data](./data) folder, there are some graph examples that you can use to try this software. In that folder, there are a lot of files.<br />
@@ -87,11 +95,15 @@ The input file can contain:
 	indicating that al the nodes, `<NodeID1>` ... `<NodeIDN>` , are linked to each other.
 
 ### Output
-The program will create a folder, named *${input_name}_out*, where the clusters found are stored.<br />
-In particular the output files produced by the Reducer tasks are formatted by the `SequenceFileOutputFormat<pad.ClusterWritable, org.apache.hadoop.io.NullWritable>`, where `pad.ClusterWritable` represents an array of integers and is serialized writing on the output file its size and then its elements.
+The program will create a folder where the clusters found are stored.<br />
+In particular the output files produced by the Reducer tasks are formatted by the `SequenceFileOutputFormat<pad.ClusterWritable, org.apache.hadoop.io.NullWritable>`, where `pad.ClusterWritable` represents an array of integers and is serialized writing on the output file its size and then its elements. Therefore, each output file has the following format:\\
+```bash
+	<Cluster1><Cluster2> ... <ClusterK>
+```
+where each *Cluster* is a sequence of increasing numbers which they compound a *connected component* of the input graph.
 
 ### Algorithm
-The algorithm, that I have implemented, has some slight difference compared to the one proposed in the paper. Below, it is shown the pseudo-code.
+Below, it is shown the pseudo-code of the algorithm I have implemented:
 
 ```
 	Input: G = (V, E) represented with an adjacency list.
@@ -102,12 +114,14 @@ The algorithm, that I have implemented, has some slight difference compared to t
 4:		Small-Star
 5:	until Convergence
 6:	Termination_Phase
+7:	Check_Phase
 ```
 
 Where:
 
 - **Initialization_Phase**	→	Transform the adjacency/cluster list in a list of pairs `<NodeID><TAB><NeighborID>`
 - **Termination_Phase**		→	Transform the list of pairs into sets of nodes ( *cluster files* )
+- **Check_Phase**			→	Verify that no clusters is malformed
 
 ### Test the Software
 In order to test this software, I have prepared some verification outputs in the [data](./data) folder, with the purpose to compare these handmande expected outputs with the software outputs.<br />
@@ -131,14 +145,7 @@ For example, you can test the following graph:
 	6 11
 	```
 
-In the [bin](./bin) folder, you can find a *bash script* that tests each phase for every appropriate input found in the [data](./data) folder. Pay attenction that for the *StarTest.sh* script, you need to specify the *type* of the operation as argument, like "small" or "large".<br />
-Also, verify that at least the **$HADOOP_HOME** and **$WORKING_DIR** variables are appropriately set.<br />
-In my case they have the following values :
-
-```
-HADOOP_HOME=/home/$USER/hadoop-1.2.1
-WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents
-```
+In the [bin](./bin) folder, you can find a *bash script* that tests each phase for every appropriate input found in the [data](./data) folder. Pay attenction that for the *StarTest.sh* script, you need to specify the *type* of the operation as argument, like "small" or "large".
 
 ###License
 Apache License
