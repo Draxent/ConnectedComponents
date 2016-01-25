@@ -1,5 +1,5 @@
 /**
- *	@file LargeStarDriver.java
+ *	@file StarDriver.java
  *	@brief Driver of the Job responsible for executing the Small-Star or Large-Star operation on the input graph.
  *  @author Federico Conte (draxent)
  *  
@@ -23,6 +23,7 @@ package pad;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
@@ -36,30 +37,29 @@ import org.apache.hadoop.util.Tool;
 /**	Driver of the Job responsible for executing the Small-Star or Large-Star operation on the input graph. */
 public class StarDriver extends Configured implements Tool
 {
-	/** Counter used to count the number of changes occurred during the operation Small-Star or Large-Star. */
-	public enum UtilCounters { NUM_CHANGES };
 	/** The StarDriver can be of type Large-StarDriver or Small-StarDriver */
 	public enum StarDriverType { LARGE, SMALL };
+	
 	private final String title;
 	private final StarDriverType type;
-	private final Path graphInput;
-	private final Path graphOutput;
+	private final Path input, output;
 	private final boolean verbose;
 	private long numChanges;
 	
 	/**
 	* Initializes a new instance of the StarDriver class.
 	* @param type		identify which kind of job execute: Small-Star or Large-Star.
-	* @param graphInput	piece of the path of the result folder of \see InitializationDriver or \see StarDriver Job.
-	* @param iteration	identify the input path and output path used by this Job.
+	* @param input		path of the result folder of \see InitializationDriver or \see StarDriver Job.
+	* @param output		path of the output folder.
+	* @param iteration	used to build the title of this Job.
 	* @param verbose	if <c>true</c> shows on screen the messages of the Job execution.
 	*/
-	public StarDriver( StarDriverType type, Path graphInput, int iteration, boolean verbose )
+	public StarDriver( StarDriverType type, Path input, Path output, int iteration, boolean verbose )
 	{
 		this.type = type;
 		this.title = type.equals( StarDriverType.SMALL ) ? "Small-Star" + iteration : "Large-Star" + iteration;
-		this.graphInput = graphInput.suffix( "_" + iteration );
-		this.graphOutput = graphInput.suffix( "_" + ( iteration + 1 ) );
+		this.input = input;
+		this.output = output;
 		this.verbose = verbose;
 	}
 	
@@ -92,12 +92,13 @@ public class StarDriver extends Configured implements Tool
 		job.setInputFormatClass( SequenceFileInputFormat.class );
 		job.setOutputFormatClass( SequenceFileOutputFormat.class );
 	
-		FileInputFormat.addInputPath( job, graphInput );
-		FileOutputFormat.setOutputPath( job, graphOutput );
+		FileInputFormat.addInputPath( job, this.input );
+		FileOutputFormat.setOutputPath( job, this.output );
 
 		if ( !job.waitForCompletion( verbose ) )
 			return 1;
 		
+		// Set up the private variable looking to the counter value
 		this.numChanges = job.getCounters().findCounter( UtilCounters.NUM_CHANGES ).getValue();
 		return 0;
 	}
@@ -109,5 +110,37 @@ public class StarDriver extends Configured implements Tool
 	public long getNumChanges()
 	{
 		return this.numChanges;
+	}
+	
+	/**
+	 * Main of the \see StarDriver class.
+	 * @param args	array of external arguments,
+	 * @throws Exception
+	 */
+	public static void main( String[] args ) throws Exception 
+	{	
+		if ( args.length != 3 )
+		{
+			System.out.println( "Usage: StarDriver <type> <input> <output>" );
+			System.exit(1);
+		}
+		
+		// Check what Job we need to execute: Small-Star or Large-Star
+		StarDriverType type = args[0].toLowerCase().equals("small") ? StarDriverType.SMALL : StarDriverType.LARGE;
+		String name = ( type == StarDriverType.SMALL ) ? "Small" : "Large";
+		
+		// Execute the Small-Star or Large-Star Job
+		Path input = new Path( args[1] );
+		Path output = new Path( args[2] );
+		System.out.println( "Start " + name + "-Star." );
+		StarDriver star = new StarDriver( type, input, output, 0, true );
+		if ( star.run( null ) != 0 )
+		{
+			FileSystem.get( new Configuration() ).delete( output, true  );
+			System.exit( 1 );
+		}
+		System.out.println( "End " + name + "-Star.");
+		
+		System.exit( 0 );
 	}
 }

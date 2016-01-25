@@ -1,5 +1,5 @@
 /**
- *	@file Translator_Text2Pair_Mapper.java
+ *	@file TranslatorMapperT2C.java
  *	@brief Mapper of \see TranslatorDriver.
  *  @author Federico Conte (draxent)
  *  
@@ -19,24 +19,24 @@
  *	limitations under the License. 
  */
 
-package test;
+package pad;
 
 import java.io.IOException;
 
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 /** Mapper of \see TranslatorDriver. */
-public class Translator_Text2Pair_Mapper extends Mapper<LongWritable, Text, IntWritable, IntWritable> 
+public class TranslatorMapperT2C extends Mapper<LongWritable, Text, ClusterWritable, NullWritable> 
 {
-	private IntWritable nodeID = new IntWritable();
-	private IntWritable neighborID = new IntWritable();
+	private static final NullWritable NULL = NullWritable.get();
+	private ClusterWritable cluster = new ClusterWritable();
 	
 	/**
-	* Map method of the this Translator_Text2Pair_Mapper class.
-	* Extract the <nodeID, NeighborID> from the line and emit it.
+	* Map method of the this TranslatorMapperT2C class.
+	* Extract the Cluster from the line and emit it.
 	* @param _			offset of the line read, not used in this method.
 	* @param value		text of the line read.
 	* @param context	context of this Job.
@@ -44,17 +44,20 @@ public class Translator_Text2Pair_Mapper extends Mapper<LongWritable, Text, IntW
 	*/
 	public void map( LongWritable _, Text value, Context context ) throws IOException, InterruptedException
 	{
+		// Clear the cluster
+		cluster.clear();
+		
 		// Read line.
 		String line = value.toString();
 		
-		// Split the line on the tab character.
-		String userID_neighborID[] = line.split( "\t" );
+		// Split the line on the space character.
+		String nodes[] = line.split( " " );
 		
-		// Extract the nodeID and neighbourID.
-		nodeID.set( Integer.parseInt( userID_neighborID[0] ) );
-		neighborID.set( Integer.parseInt( userID_neighborID[1] ) );
+		// Extract the cluster elements
+		for ( int i = 0; i < nodes.length; i++ )
+			cluster.add( Integer.parseInt( nodes[i] ) );
 		
-		// Emit the pair
-		context.write( nodeID, neighborID );
+		// Emit the cluster
+		context.write( cluster, NULL );
 	}
 }

@@ -9,7 +9,7 @@ JAR_PATH=$WORKING_DIR/target/connectedComponents-1.0-SNAPSHOT.jar
 HADOOP=$HADOOP_HOME/bin/hadoop
 DATASET=$WORKING_DIR/data
 
-for original_input in $DATASET/input*
+for original_input in $DATASET/term*
 do
 	# Skip garbage
 	if [ "${original_input: -1}" == "~" ]; then
@@ -18,7 +18,7 @@ do
 
 	base_input=$(basename $original_input)
 	input="${base_input%.*}"
-	number=${input#i*_}
+	number=${input#t*_}
 	output="out${number}"
 	echo "Processing $base_input."
 
@@ -27,15 +27,22 @@ do
 	echo "Added hdfs://localhost:9000/user/$USER/$input"
 
 	# Start the Job and check if it is compleated correctly
-	echo "ConnectedComponents Job started !"
-	cc_result=$($HADOOP jar $JAR_PATH pad.ConnectedComponents $input $output 2>&1)
-	cc_out=$?
-	if [ $cc_out == 1 ]; then
-		echo -e "\033[1;31mError in ConnectedComponents Job !\033[0m"
-		exit 1
+	echo "TranslatorDriver Text2Pair Job started !"
+	result=$($HADOOP jar $JAR_PATH pad.TranslatorDriver Text2Pair ${input} ${input}T 2>&1)
+	if [[ "$result" != *"Job complete"* ]]; then
+		echo -e "\033[1;31mError in TranslatorDriver Job :\033[0m"; echo $result; exit 1
+	else
+		echo "TranslatorDriver Text2Pair Job completed correctly !"
 	fi
-	echo "ConnectedComponents Job completed !"
-	echo ${cc_result#*End ConnectedComponents.*} | sed 's/\. /.\n/g'
+
+	# Start the Job and check if it is compleated correctly
+	echo "TerminationDriver Job started !"
+	result=$($HADOOP jar $JAR_PATH pad.TerminationDriver ${input}T $output 2>&1)
+	if [[ "$result" != *"Job complete"* ]]; then
+		echo -e "\033[1;31mError in TerminationDriver Job :\033[0m"; echo $result; exit 1
+	else
+		echo "TerminationDriver Job completed correctly !"
+	fi
 
 	# Start the Job and check if it is compleated correctly
 	echo "TranslatorDriver Cluster2Text Job started !"
@@ -54,19 +61,9 @@ do
 
 	# Clean file on hadoop
 	$HADOOP fs -rmr $input
+	$HADOOP fs -rmr ${input}T
 	$HADOOP fs -rmr $output
 	$HADOOP fs -rmr ${output}T
-
-	if [ $cc_out == 2 ]; then
-		# sort the final_output_file
-		sort $DATASET/$final_output_file > $DATASET/${final_output_file}_tmp.txt
-		rm $DATASET/$final_output_file
-		mv $DATASET/${final_output_file}_tmp.txt $DATASET/$final_output_file
-
-		echo -e "\033[1;31mTest on $base_input is failed: at least one cluster is malformed !\033[0m"
-		echo "Check $final_output_file for more details."
-		exit 1
-	fi
 
 	$WORKING_DIR/bin/compare_result.sh $base_input $final_output_file $correct_file
 	if [ $? != 0 ]; then

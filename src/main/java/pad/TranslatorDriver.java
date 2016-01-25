@@ -19,12 +19,14 @@
  *	limitations under the License. 
  */
 
-package test;
+package pad;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -49,21 +51,23 @@ public class TranslatorDriver extends Configured implements Tool
 	 * - \see pad.NodesPairWritable into Text
 	 * - Text into \see pad.NodesPairWritable
 	 * - \see pad.ClusterWritable into Text
+	 * - Text into \see pad.ClusterWritable
 	 */
-	public enum DirectionTranslation { Pair2Text, Text2Pair, Cluster2Text };
+	public enum TranslationType { Pair2Text, Text2Pair, Cluster2Text, Text2Cluster};
 	
-	private final Path input;
-	private final DirectionTranslation direction;
+	private final Path input, output;
+	private final TranslationType type;
 	
 	/**
 	* Initializes a new instance of the TranslatorDriver class.
 	* @param input		path of the input stored on hdfs.
-	* @param direction	which translation to perform, \ref DirectionTranslation.
+	* @param type	which translation to perform, \ref TranslationType.
 	*/
-	public TranslatorDriver( Path input, DirectionTranslation direction )
+	public TranslatorDriver( TranslationType type, Path input, Path output )
 	{
 		this.input = input;
-		this.direction = direction;
+		this.output = output;
+		this.type = type;
 	}
 	
 	/**
@@ -77,12 +81,12 @@ public class TranslatorDriver extends Configured implements Tool
 		Configuration conf = new Configuration();
 		// GenericOptionsParser invocation in order to suppress the hadoop warning.
 		new GenericOptionsParser( conf, args );
-		Job job = new Job( conf, "TranslatorDriver " + this.direction.toString() );
+		Job job = new Job( conf, "TranslatorDriver " + this.type.toString() );
 		job.setJarByClass( TranslatorDriver.class );
 		
 		job.setNumReduceTasks( 0 );
 		
-		switch ( this.direction )
+		switch ( this.type )
 		{
 			case Pair2Text: case Cluster2Text:
 				job.setMapperClass( Mapper.class );
@@ -92,20 +96,64 @@ public class TranslatorDriver extends Configured implements Tool
 				job.setOutputFormatClass( TextOutputFormat.class );
 				break;
 			case Text2Pair:
-				job.setMapperClass( Translator_Text2Pair_Mapper.class );
+				job.setMapperClass( TranslatorMapperT2P.class );
 				job.setOutputKeyClass( IntWritable.class );
 				job.setOutputValueClass( IntWritable.class );
 				job.setInputFormatClass( TextInputFormat.class );
 				job.setOutputFormatClass( SequenceFileOutputFormat.class );		
 				break;
+			case Text2Cluster:
+				job.setMapperClass( TranslatorMapperT2C.class );
+				job.setOutputKeyClass( ClusterWritable.class );
+				job.setOutputValueClass( NullWritable.class );
+				job.setInputFormatClass( TextInputFormat.class );
+				job.setOutputFormatClass( SequenceFileOutputFormat.class );	
+				break;
 		}
 	
 		FileInputFormat.addInputPath( job, this.input );
-		FileOutputFormat.setOutputPath( job, this.input.suffix( "_transl" ) );
+		FileOutputFormat.setOutputPath( job, this.output );
 		
 		if ( !job.waitForCompletion( true ) )
 			return 1;
 	
 		return 0;
+	}
+	
+	/**
+	 * Main of the \see TranslatorDriver class.
+	 * @param args	array of external arguments,
+	 * @throws Exception
+	 */
+	public static void main( String[] args ) throws Exception 
+	{	
+		if ( args.length != 3 )
+		{
+			System.out.println( "Usage: TranslatorTest <type> <input> <output>" );
+			System.exit(1);
+		}
+		
+		TranslationType type;
+		if ( args[0].toLowerCase().equals( "pair2text" ) )
+			type = TranslationType.Pair2Text;
+		else if (args[0].toLowerCase().equals( "text2pair" ) )
+			type = TranslationType.Text2Pair;
+		else if (args[0].toLowerCase().equals( "cluster2text" ) )
+			type = TranslationType.Cluster2Text;
+		else
+			type = TranslationType.Text2Cluster;
+		
+		Path input = new Path( args[1] );
+		Path output = new Path( args[2] );
+		System.out.println( "Start TranslatorDriver " + type.toString() + "." );
+		TranslatorDriver trans = new TranslatorDriver( type, input, output );
+		if ( trans.run( null ) != 0  )
+		{
+			FileSystem.get( new Configuration() ).delete( output, true  );
+			System.exit( 1 );
+		}
+		System.out.println( "End TranslatorDriver " + type.toString() + "." );
+
+		System.exit( 0 );
 	}
 }

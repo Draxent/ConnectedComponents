@@ -1,6 +1,6 @@
 /**
  *	@file TerminationDriver.java
- *	@brief Driver of the Job responsible for transforming transform the list of pair <nodeID, neighborID> into sets of nodes (clusters).
+ *	@brief Driver of the Job responsible for transforming the list of pair <nodeID, neighborID> into sets of nodes (clusters).
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -23,6 +23,7 @@ package pad;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -35,28 +36,24 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
 /**	
- * Driver of the Job responsible for transforming transform the list of pair 
+ * Driver of the Job responsible for transforming the list of pair 
  * <nodeID, neighborID> into sets of nodes (clusters).
  */
 public class TerminationDriver extends Configured implements Tool
-{
-	/** Counter used to count the number of clusters found. */
-	public enum UtilCounters { NUM_CLUSTERS };
-	
-	private final Path graphInput;
-	private final Path output;
+{	
+	private final Path input, output;
 	private final boolean verbose;
-	private int numClusters;
+	private long numNodes, numClusters;
 	
 	/**
 	* Initializes a new instance of the TerminationDriver class.
-	* @param graphInput	path of the result folder of \see StarDriver Job.
+	* @param input		path of the result folder of \see StarDriver Job.
 	* @param output		path of the output folder.
 	* @param verbose	if <c>true</c> shows on screen the messages of the Job execution.
 	*/
-	public TerminationDriver( Path graphInput, Path output, boolean verbose )
+	public TerminationDriver( Path input, Path output, boolean verbose )
 	{
-		this.graphInput = graphInput;
+		this.input = input;
 		this.output = output;
 		this.verbose = verbose;
 	}
@@ -64,7 +61,7 @@ public class TerminationDriver extends Configured implements Tool
 	/**
 	 * Execute the TerminationDriver Job.
 	 * @param args		array of external arguments, not used in this method
-	 * @return 			<c>1</c> if the StarDriver Job failed its execution; <c>0</c> if everything is ok. 
+	 * @return 			<c>1</c> if the TerminationDriver Job failed its execution; <c>0</c> if everything is ok. 
 	 * @throws Exception 
 	 */
 	public int run( String[] args ) throws Exception
@@ -88,23 +85,60 @@ public class TerminationDriver extends Configured implements Tool
 		job.setInputFormatClass( SequenceFileInputFormat.class );
 		job.setOutputFormatClass( SequenceFileOutputFormat.class );
 	
-		Path outputPath = this.output;
-		FileInputFormat.addInputPath( job, this.graphInput );
-		FileOutputFormat.setOutputPath( job, outputPath );
+		FileInputFormat.addInputPath( job, this.input );
+		FileOutputFormat.setOutputPath( job, this.output );
 		
 		if ( !job.waitForCompletion( this.verbose ) )
 			return 1;
 		
-		this.numClusters = (int) job.getCounters().findCounter( UtilCounters.NUM_CLUSTERS ).getValue();
+		// Set up the private variables looking to the counters value
+		this.numNodes = job.getCounters().findCounter( UtilCounters.NUM_NODES ).getValue();
+		this.numClusters = job.getCounters().findCounter( UtilCounters.NUM_CLUSTERS ).getValue();
 		return 0;
+	}
+	
+	/**
+	 * Return the number of nodes found.
+	 * @return 	number of nodes.
+	 */
+	public long getNumNodes()
+	{
+		return this.numNodes;
 	}
 	
 	/**
 	 * Return the number of clusters found.
 	 * @return 	number of clusters.
 	 */
-	public int getNumClusters()
+	public long getNumClusters()
 	{
 		return this.numClusters;
+	}
+	
+	/**
+	 * Main of the \see TerminationDriver class.
+	 * @param args	array of external arguments,
+	 * @throws Exception
+	 */
+	public static void main( String[] args ) throws Exception 
+	{	
+		if ( args.length != 2 )
+		{
+			System.out.println( "Usage: TerminationDriver <input> <output>" );
+			System.exit(1);
+		}
+		
+		Path input = new Path( args[0] );
+		Path output = new Path( args[1] );
+		System.out.println( "Start TerminationDriver. " );
+		TerminationDriver term = new TerminationDriver( input, output, true );
+		if ( term.run( null ) != 0  )
+		{
+			FileSystem.get( new Configuration() ).delete( output, true  );
+			System.exit( 1 );
+		}
+		System.out.println( "End TerminationDriver." );
+
+		System.exit( 0 );
 	}
 }

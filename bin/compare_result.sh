@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# VARIABLES
-HADOOP_HOME=/home/$USER/hadoop-1.2.1
+# VARIABLES TO SET
 WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents2
-JAR_PATH=target/connectedComponents-1.0-SNAPSHOT.jar
+
+# DERIVATE VARIABLES
 DATASET=$WORKING_DIR/data
 
 if [ $# != 3 ]; then
@@ -16,9 +16,9 @@ final_output_file=$2
 correct_file=$3
 
 # sort the final_output_file
-sort $DATASET/$final_output_file > $DATASET/tmp.txt
+sort $DATASET/$final_output_file > $DATASET/${final_output_file}_tmp.txt
 rm $DATASET/$final_output_file
-mv $DATASET/tmp.txt $DATASET/$final_output_file
+mv $DATASET/${final_output_file}_tmp.txt $DATASET/$final_output_file
 
 # Check existence of file
 if [ ! -f $DATASET/$correct_file ]; then

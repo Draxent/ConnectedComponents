@@ -1,5 +1,5 @@
 /**
- *	@file LargeStarReducer.java
+ *	@file StarReducer.java
  *	@brief Reducer task of the \see StarDriver Job.
  *  @author Federico Conte (draxent)
  *  
@@ -26,7 +26,7 @@ import java.io.IOException;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import pad.StarDriver.UtilCounters;
+import pad.UtilCounters;
 
 /** Reducer task of the \see StarDriver Job. */
 public class StarReducer extends Reducer<NodesPairWritable, IntWritable, IntWritable, IntWritable> 

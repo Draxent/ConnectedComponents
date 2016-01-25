@@ -23,96 +23,202 @@ package pad;
 
 import java.io.IOException;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import pad.InitializationDriver.InputType;
 import pad.StarDriver.StarDriverType;
 
 /**	This class orchestrates all the driver jobs in order to get a file with the recognized clusters of the input graph. */
 public class ConnectedComponents
 {
-	private final String input;
-	private final Path baseInput;
+	private static final int MAX_ITERATIONS = 30;
+	private final Path input, output;
 	private final FileSystem fs;
+	private InputType type;
+	private long numInitialClusters, numInitialNodes, numNodes, numClusters;
+	private boolean testOk;
 	
 	/**
 	* Initializes a new instance of the ConnectedComponents class.
-	* @param graphInput		path of the input graph stored on hdfs.
+	* @param input		path of the input graph stored on hdfs.
+	* @param output		path of the output folder.
 	*/
-	public ConnectedComponents( String graphInput ) throws IOException
+	public ConnectedComponents( Path input, Path output ) throws IOException
 	{		
-		this.input = graphInput;
-		this.baseInput =  new Path( FilenameUtils.removeExtension( graphInput ) );
+		this.input =  input;
+		this.output =  output;
 		this.fs = FileSystem.get( new Configuration() );
-	}
-	
-	/**
-	* Delete the output folder in use by the Job that cause the error and return <c>false</c>.
-	* @param suffix		in order to identify the folder to delete.
-	* @return			always <c>false</c>.
-	*/
-	private boolean exit( String suffix ) throws IllegalArgumentException, IOException
-	{
-		this.fs.delete( this.baseInput.suffix( suffix ), true  );
-		return false;
 	}
 	
 	/**
 	 * Execute all the Driver Job orchestration necessary to construct the array of \see Cluster.
 	 * The pseudo code is the following:
 	 * <code>
-	 *	Initialization_Driver()
+	 *	InitializationDriver()
 	 *
 	 *	repeat
-	 * 	|	Large-Star_Driver()
-	 * 	|	Small-Star_Driver()
+	 * 	|	Large-StarDriver()
+	 * 	|	Small-StarDriver()
 	 *  until Convercence()
 	 *  
-	 *	Termination_Driver()
+	 *	TerminationDriver()
+	 *	CheckDriver()
 	 * </code>
 	 * @return 	<c>false</c> if the orchestration failed, <c>true</c> otherwise. 
 	 * @throws Exception
 	 */
 	public boolean run() throws Exception
 	{	
-		// Run initialization in order to transform the adjacent list or cluster list into
+		// Run initialization in order to transform the adjacency list or cluster list into
 		// a list of pair <nodeID, neighborID>.
-		InitializationDriver init = new InitializationDriver( this.input, false );
+		InitializationDriver init = new InitializationDriver( this.input, this.input.suffix( "_0" ), false );
 		if ( init.run( null ) != 0 )
-			return exit( "0" );
+		{
+			this.fs.delete( this.input.suffix( "_0" ), true );
+			return false;
+		}
 		
 		StarDriver largeStar, smallStar;
 		int i = 0;
 		do
 		{
-			largeStar = new StarDriver( StarDriverType.LARGE, this.baseInput, i, false );
+			largeStar = new StarDriver( StarDriverType.LARGE, this.input.suffix( "_" + i ), this.input.suffix( "_" + (i+1) ), i, false );
 			if ( largeStar.run( null ) != 0 )
-				return exit( "_" + i );
+			{
+				this.fs.delete( this.input.suffix( "_" + i ), true );
+				this.fs.delete( this.input.suffix( "_" + (i+1) ), true );
+				return false;
+			}
 			
 			// Delete previous output
-			this.fs.delete( this.baseInput.suffix( "_" + i ), true  );
+			this.fs.delete( this.input.suffix( "_" + i ), true );
 			i++;
 			
-			smallStar = new StarDriver( StarDriverType.SMALL, this.baseInput, i, false );
+			smallStar = new StarDriver( StarDriverType.SMALL, this.input.suffix( "_" + i ), this.input.suffix( "_" + (i+1) ), i, false );
 			if ( smallStar.run( null ) != 0 )
-				return exit( "_" + i );
+			{
+				this.fs.delete( this.input.suffix( "_" + i ), true );
+				this.fs.delete( this.input.suffix( "_" + (i+1) ), true );
+				return false;
+			}
 			
 			// Delete previous output
-			this.fs.delete( this.baseInput.suffix( "_" + i ), true  );
+			this.fs.delete( this.input.suffix( "_" + i ), true );
 			i++;
 		}
-		while ( largeStar.getNumChanges() + smallStar.getNumChanges() != 0 );
+		while ( (largeStar.getNumChanges() + smallStar.getNumChanges() != 0) && (i < 2*MAX_ITERATIONS) );
 		
 		// Run it in order to transform the list of pair <nodeID, neighborID> into sets of nodes (clusters)
-		TerminationDriver term = new TerminationDriver( this.baseInput.suffix( "_" + i ), this.baseInput.suffix( "_out" ), false );
+		TerminationDriver term = new TerminationDriver( this.input.suffix( "_" + i ), this.output, false );
 		if ( term.run( null ) != 0 )
-			return exit( "_" + i );
+		{
+			this.fs.delete( this.input.suffix( "_" + i ), true );
+			this.fs.delete( this.output, true );
+			return false;
+		}
 
 		// Delete last iteration
-		this.fs.delete(  this.baseInput.suffix( "_" + i ), true  );
-			
+		this.fs.delete(  this.input.suffix( "_" + i ), true );
+		
+		CheckDriver check = new CheckDriver( this.output, false );
+		if ( check.run( null ) != 0)
+			return false;
+		
+		this.type = init.getInputType();
+		this.numInitialClusters = init.getNumInitialClusters();
+		this.numInitialNodes = init.getNumInitialNodes();
+		this.numClusters = term.getNumClusters();
+		this.numNodes = term.getNumNodes();
+		this.testOk = check.isTestOk();
+		
 		return true;
+	}
+	
+	/**
+	 * Return the type of format of the input file.
+	 * @return 	the type of format of the input file.
+	 */
+	public InputType getInputType()
+	{
+		return this.type;
+	}
+	
+	/**
+	 * Returns the number of initial clusters founds in the input file.
+	 * @return 	number of initial clusters.
+	 */
+	public long getNumInitialClusters()
+	{
+		return this.numInitialClusters;
+	}
+	
+	/**
+	 * Returns the number of initial nodes founds in the input file.
+	 * @return 	number of initial nodes.
+	 */
+	public long getNumInitialNodes()
+	{
+		return this.numInitialNodes;
+	}
+	
+	/**
+	 * Return the number of nodes found.
+	 * @return 	number of nodes.
+	 */
+	public long getNumNodes()
+	{
+		return this.numNodes;
+	}
+	
+	/**
+	 * Return the number of clusters found.
+	 * @return 	number of clusters.
+	 */
+	public long getNumClusters()
+	{
+		return this.numClusters;
+	}
+	
+	/**
+	 * Return <code>false</code> if the checking phase has found that at least one Cluster is malformed,
+	 * <code>true</code> otherwise.
+	 * @return 	<code>true</code> if no Cluster is malformed, <code>false</code> otherwise.
+	 */
+	public boolean isTestOk()
+	{
+		return this.testOk;
+	}
+	
+	/**
+	 * Main of the \see ConnectedComponents class.
+	 * @param args	array of external arguments,
+	 * @throws Exception
+	 */
+	public static void main( String[] args ) throws Exception 
+	{
+		if ( args.length != 2 )
+		{
+			System.out.println( "Usage: ConnectedComponents <input> <output>" );
+			System.exit(1);
+		}
+		
+		Path input = new Path( args[0] );
+		Path output = new Path( args[1] );
+		System.out.println( "Start ConnectedComponents." );
+		ConnectedComponents cc = new ConnectedComponents( input, output );
+		if ( !cc.run() )
+			System.exit( 1 );
+		System.out.println( "End ConnectedComponents." );
+		
+		System.out.println( "Input file format: \033[1;94m" + cc.getInputType().toString() + "\033[0m." );
+		System.out.println( "Number of initial nodes: \033[1;94m" + cc.getNumInitialNodes() + "\033[0m." );
+		System.out.println( "Number of initial Clusters: \033[1;94m" + cc.getNumInitialClusters() + "\033[0m." );
+		System.out.println( "Number of final nodes: \033[1;94m" + cc.getNumNodes() + "\033[0m." );
+		System.out.println( "Number of final Clusters: \033[1;94m" + cc.getNumClusters() + "\033[0m." );
+		System.out.println( "TestOK: \033[1;94m" + String.valueOf( cc.isTestOk() ) + "\033[0m." );
+		
+		System.exit( 0 );
 	}
 }

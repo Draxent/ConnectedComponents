@@ -27,7 +27,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import pad.TerminationDriver.UtilCounters;
+import pad.UtilCounters;
 
 /**	Reducer task of the \see TerminationDriver Job. */
 public class TerminationReducer extends Reducer<NodesPairWritable, IntWritable, ClusterWritable, NullWritable> 
@@ -56,15 +56,30 @@ public class TerminationReducer extends Reducer<NodesPairWritable, IntWritable, 
 		// If the node is not alone
 		if ( pair.NeighborID != -1 )
 		{
+			// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
+			int lastNodeSeen = -2;
+			
 			// Add to the cluster all the neighbors of the node,
 			// we know that the neighbors are sort in ascending order thanks to the secondary order.
 			for ( IntWritable neighbor : neighborhood )
+			{
+				// Skip the duplicate nodes.
+				if ( neighbor.get() == lastNodeSeen )
+					continue;
+				
+				// Add the node to the cluster
 				cluster.add( neighbor.get() );
+				
+				// Store the last neighborId that we have processed.
+				lastNodeSeen = neighbor.get();
+			}
 		}
 		
-		// Increment the number of clusters
+		// Increment the number of nodes by the number of nodes of this cluster.
+		context.getCounter( UtilCounters.NUM_NODES ).increment( cluster.size() );
+		// Increment the number of clusters by one.
 		context.getCounter( UtilCounters.NUM_CLUSTERS ).increment( 1 );
-		// Emit the cluster
+		// Emit the cluster.
 		context.write( cluster, NULL );
 	}
 }
