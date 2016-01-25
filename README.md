@@ -1,5 +1,11 @@
 # ConnectedComponents
 
+---
+
+**Table of Contents** &nbsp;&nbsp; [Description](#description) | [Demonstration](#demonstration) | [Compile](#compile) | [Usage](#usage) | [Input](#input) | [Output](#output) | [Algorithm](#algorithm) | [Test the Software](#test%the%software) | [License](#license)
+
+---
+
 ###Description
 Given a graph, this algorithm identifies the [connected components](https://en.wikipedia.org/wiki/Connected_component_(graph_theory)) using Hadoop MapReduce framework.
 
