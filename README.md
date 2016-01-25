@@ -2,7 +2,7 @@
 
 ---
 
-**Table of Contents** &nbsp;&nbsp; [Description](#description) | [Demonstration](#demonstration) | [Compile](#compile) | [Usage](#usage) | [Input](#input) | [Output](#output) | [Algorithm](#algorithm) | [Test the Software](#test%the%software) | [License](#license)
+**Table of Contents** &nbsp;&nbsp; [Description](#description) | [Demonstration](#demonstration) | [Compile](#compile) | [Usage](#usage) | [Input](#input) | [Output](#output) | [Algorithm](#algorithm) | [Testing](#testing) | [License](#license)
 
 ---
 
@@ -129,7 +129,7 @@ Where:
 - **Termination_Phase**		→	Transform the list of pairs into sets of nodes ( *cluster files* )
 - **Check_Phase**			→	Verify that no clusters is malformed
 
-### Test the Software
+### Testing
 In order to test this software, I have prepared some verification outputs in the [data](./data) folder, with the purpose to compare these handmande expected outputs with the software outputs.<br />
 For example, you can test the following graph:
 
