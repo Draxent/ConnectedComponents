@@ -1,10 +1,6 @@
 #!/bin/bash
 
-# VARIABLES TO SET
-WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents2
-
-# DERIVATE VARIABLES
-DATASET=$WORKING_DIR/data
+source config.txt
 
 if [ $# != 3 ]; then
 	echo "Usage: $0 base_input final_output_file correct_file"

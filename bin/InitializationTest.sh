@@ -1,13 +1,6 @@
 #!/bin/bash
 
-# VARIABLES TO SET
-HADOOP_HOME=/home/$USER/hadoop-1.2.1
-WORKING_DIR=/home/$USER/Exercises-PAD/connectedComponents2
-
-# DERIVATE VARIABLES
-JAR_PATH=$WORKING_DIR/target/connectedComponents-1.0-SNAPSHOT.jar
-HADOOP=$HADOOP_HOME/bin/hadoop
-DATASET=$WORKING_DIR/data
+source config.txt
 
 for original_input in $DATASET/input*
 do
