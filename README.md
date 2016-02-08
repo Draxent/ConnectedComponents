@@ -22,6 +22,8 @@ The algorithm tries to implement the *"The Alternating Algorithm"* proposed in t
 4:	until Convergence
 ```
 
+If this *README* is not enough and you want to have more details on the application, you can read the [report](./report.pdf).
+
 ###Demonstration
 Below, it is shown a demonstration of usage of the **ConnectedComponents** class that allows you to run the connected component algorithm on your graph.<br />
 This code simply creates a **ConnectedComponents** object, taking as input the graph and the output folder. Invoking the **run** method,  the algorithm will produce an hdfs file for each Reducer task, invoked by MapReduce framework, into the output folder. These files will contain the clusters found in the input graph.
