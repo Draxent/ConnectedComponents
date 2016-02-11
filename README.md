@@ -96,14 +96,14 @@ The input file can contain:
 	- `<NodeID>`: is a unique integer ID corresponding to an unique node of the graph.
 	- `<Neighborhood>`: is a comma separated list of increasing unique IDs corresponding to the nodes of the graph that are linked to `<NodeID>`.
 
-2.	the **cluster list** of the graph, i.e. multiple lines in the following format:
+2.	the **clique list** of the graph, i.e. multiple lines in the following format:
 	```bash
 	<NodeID1><SPACE><NodeID2><SPACE> ... <SPACE><NodeIDN>
 	```
 	indicating that al the nodes, `<NodeID1>` ... `<NodeIDN>` , are linked to each other.
 
 ### Output
-The program will create a folder where the clusters found are stored.<br />
+The program will create a folder where the clusters found are stored  in a **star list** format..<br />
 In particular the output files produced by the Reducer tasks are formatted by the `SequenceFileOutputFormat<pad.ClusterWritable, org.apache.hadoop.io.NullWritable>`, where `pad.ClusterWritable` represents an array of integers and is serialized writing on the output file its size and then its elements. Therefore, each output file has the following format:\\
 ```bash
 	<Cluster1><Cluster2> ... <ClusterK>
@@ -127,8 +127,8 @@ Below, it is shown the pseudo-code of the algorithm I have implemented:
 
 Where:
 
-- **Initialization_Phase**	→	Transform the adjacency/cluster list in a list of pairs `<NodeID><TAB><NeighborID>`
-- **Termination_Phase**		→	Transform the list of pairs into sets of nodes ( *cluster files* )
+- **Initialization_Phase**	→	Transform the adjacency/clique list in a list of edges `<NodeID><TAB><NeighborID>`
+- **Termination_Phase**		→	Transform the list of edges into sets of nodes ( *cluster files*, i.e. star list )
 - **Check_Phase**			→	Verify that no clusters is malformed
 
 ### Testing
