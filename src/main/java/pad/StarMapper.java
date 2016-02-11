@@ -48,59 +48,59 @@ public class StarMapper extends Mapper<IntWritable, IntWritable, NodesPairWritab
 	* If it is a Large-Star Mapper, it emits the pairs <u,v> and <v,u>.
 	* If it is a Small-Star Mapper, it emits the pair <max(u,v), min(u,v)>.
 	* @param nodeID			identifier of the node.
-	* @param neighborID		identifier of the neighbor.
+	* @param neighbourID		identifier of the neighbour.
 	* @param context	context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void map( IntWritable nodeID, IntWritable neighborID, Context context ) throws IOException, InterruptedException 
+	public void map( IntWritable nodeID, IntWritable neighbourID, Context context ) throws IOException, InterruptedException 
 	{		
 		// if the node is alone, emit it like is it in order to keep that information
-		if ( neighborID.get() == -1 )
+		if ( neighbourID.get() == -1 )
 		{
 			// Set up the pair.
 			pair.NodeID = nodeID.get();
-			pair.NeighborID =  neighborID.get();
+			pair.NeighbourID =  neighbourID.get();
 			
-			context.write( pair, neighborID );
+			context.write( pair, neighbourID );
 			return;
 		}
 		
-		// If we are running Small-Star, we emit only when the neighborID is smaller than nodeID
+		// If we are running Small-Star, we emit only when the neighbourID is smaller than nodeID
 		if ( smallStar )
 		{
-			// if the label of neighbor is less than the label of the node
-			if ( neighborID.get() < nodeID.get() )
+			// if the label of neighbour is less than the label of the node
+			if ( neighbourID.get() < nodeID.get() )
 			{
 				// Set up the pair.
 				pair.NodeID = nodeID.get();
-				pair.NeighborID =  neighborID.get();
+				pair.NeighbourID =  neighbourID.get();
 				
-				context.write( pair, neighborID );
+				context.write( pair, neighbourID );
 			}
 			else
 			{
 				// Set up the pair.
-				pair.NodeID = neighborID.get();
-				pair.NeighborID =  nodeID.get();
+				pair.NodeID = neighbourID.get();
+				pair.NeighbourID =  nodeID.get();
 				
 				context.write( pair, nodeID );
 			}
 		}
-		// If we are running Large-Star, we always emit: <NodeID; NeighborID> and <NeighborID; NodeID>
+		// If we are running Large-Star, we always emit: <NodeID; NeighbourID> and <NeighbourID; NodeID>
 		else
 		{
 			// Set up the pair.
 			pair.NodeID = nodeID.get();
-			pair.NeighborID =  neighborID.get();
+			pair.NeighbourID =  neighbourID.get();
 			
-			// Emit <NodeID; NeighborID>
-			context.write( pair, neighborID );
+			// Emit <NodeID; NeighbourID>
+			context.write( pair, neighbourID );
 			
 			// Set up the pair.
-			pair.NodeID = neighborID.get();
-			pair.NeighborID =  nodeID.get();
+			pair.NodeID = neighbourID.get();
+			pair.NeighbourID =  nodeID.get();
 			
-			// Emit <NeighborID; NodeID>
+			// Emit <NeighbourID; NodeID>
 			context.write( pair, nodeID );
 		}
 	}

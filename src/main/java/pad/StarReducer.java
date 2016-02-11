@@ -49,22 +49,22 @@ public class StarReducer extends Reducer<NodesPairWritable, IntWritable, IntWrit
 	
 	/**
 	* Reduce method of the this StarReducer class.
-	* Since the neighbors are sorted, thanks to the secondary sort, we know that the
-	* minimum node is either the NodeID or the first neighbor. We call <em>MinNodeID</em> this node.
-	* For each neighbor, we produce the pairs <NeighborID, MinNodeID> and <MinNodeID, NeighborID> :
+	* Since the neighbours are sorted, thanks to the secondary sort, we know that the
+	* minimum node is either the NodeID or the first neighbour. We call <em>MinNodeID</em> this node.
+	* For each neighbour, we produce the pairs <NeighbourID, MinNodeID> and <MinNodeID, NeighbourID> :
 	* 	-	always, if it is a Small-Star Reducer;
-	*   -	only when NeighborID is greater than NodeID, if it is a Large-Star Reducer.
+	*   -	only when NeighbourID is greater than NodeID, if it is a Large-Star Reducer.
 	* @param pair			pair used to implement the secondary sort, \see NodesPair.
-	* @param neighborhood	list of neighbors.
+	* @param neighbourhood	list of neighbours.
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
+	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighbourhood, Context context ) throws IOException, InterruptedException 
 	{
 		long numProducedPairs = 0;
 		
 		// This means that the nodeID is isolated, so we emit it unchanged
-		if ( pair.NeighborID == -1 )
+		if ( pair.NeighbourID == -1 )
 		{
 			minNodeID.set( pair.NodeID );
 			context.write( minNodeID, MINUS_ONE );
@@ -72,10 +72,10 @@ public class StarReducer extends Reducer<NodesPairWritable, IntWritable, IntWrit
 		}
 		
 		// Thanks to the secondary sorting, we know the the first element contains
-		// the neighbor node with the minimum label. We just need to compare it with the node id.
-		minNodeID.set( Math.min( pair.NodeID, pair.NeighborID ) );
+		// the neighbour node with the minimum label. We just need to compare it with the node id.
+		minNodeID.set( Math.min( pair.NodeID, pair.NeighbourID ) );
 		
-		// If we are running Small-Star, we need to connect this node to the minimum neighbors
+		// If we are running Small-Star, we need to connect this node to the minimum neighbours
 		if ( smallStar && ( pair.NodeID != minNodeID.get() ) )
 		{
 			nodeID.set( pair.NodeID );
@@ -84,24 +84,24 @@ public class StarReducer extends Reducer<NodesPairWritable, IntWritable, IntWrit
 		
 		// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
 		int lastNodeSeen = -2;
-		for ( IntWritable neighbor : neighborhood )
+		for ( IntWritable neighbour : neighbourhood )
 		{
 			// Skip the duplicate nodes.
-			if ( neighbor.get() == lastNodeSeen )
+			if ( neighbour.get() == lastNodeSeen )
 				continue;
 			
-			// If we are running Small-Star, we always emit the neighbors except when it is the minNodeID
-			// If we are running Large-Star, we emit only when the neighborID is greater than nodeID
-			boolean cond = ( smallStar ? ( neighbor.get() != minNodeID.get() ) : ( neighbor.get() > pair.NodeID ) );
+			// If we are running Small-Star, we always emit the neighbours except when it is the minNodeID
+			// If we are running Large-Star, we emit only when the neighbourID is greater than nodeID
+			boolean cond = ( smallStar ? ( neighbour.get() != minNodeID.get() ) : ( neighbour.get() > pair.NodeID ) );
 			
 			if ( cond )
 			{
-				context.write( neighbor, minNodeID );
+				context.write( neighbour, minNodeID );
 				numProducedPairs++;
 			}
 			
-			// Store the last neighborId that we have processed.
-			lastNodeSeen = neighbor.get();
+			// Store the last neighbourId that we have processed.
+			lastNodeSeen = neighbour.get();
 		}
 		
 		// If the NodeID has not the minimum label means that the produced pairs will be different,

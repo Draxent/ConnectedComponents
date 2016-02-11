@@ -32,11 +32,11 @@ import org.apache.hadoop.mapreduce.Mapper;
 public class TranslatorMapperT2P extends Mapper<LongWritable, Text, IntWritable, IntWritable> 
 {
 	private IntWritable nodeID = new IntWritable();
-	private IntWritable neighborID = new IntWritable();
+	private IntWritable neighbourID = new IntWritable();
 	
 	/**
 	* Map method of the this TranslatorMapperT2P class.
-	* Extract the <nodeID, NeighborID> from the line and emit it.
+	* Extract the <nodeID, NeighbourID> from the line and emit it.
 	* @param _			offset of the line read, not used in this method.
 	* @param value		text of the line read.
 	* @param context	context of this Job.
@@ -48,13 +48,13 @@ public class TranslatorMapperT2P extends Mapper<LongWritable, Text, IntWritable,
 		String line = value.toString();
 		
 		// Split the line on the tab character.
-		String userID_neighborID[] = line.split( "\t" );
+		String userID_neighbourID[] = line.split( "\t" );
 		
 		// Extract the nodeID and neighbourID.
-		nodeID.set( Integer.parseInt( userID_neighborID[0] ) );
-		neighborID.set( Integer.parseInt( userID_neighborID[1] ) );
+		nodeID.set( Integer.parseInt( userID_neighbourID[0] ) );
+		neighbourID.set( Integer.parseInt( userID_neighbourID[1] ) );
 		
 		// Emit the pair
-		context.write( nodeID, neighborID );
+		context.write( nodeID, neighbourID );
 	}
 }

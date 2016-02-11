@@ -2,10 +2,10 @@ package pad;
 
 public enum UtilCounters
 {
-	///  Count the number of initial nodes in the graph (used only if the input is format as adjacent list).
+	///  Count the number of initial nodes in the graph.
 	NUM_INITIAL_NODES,
-	/// Count the number of initial clusters in the graph (used only if the input is format as cluster list).
-	NUM_INITIAL_CLUSTERS,
+	/// Count the number of cliques in the graph (used only if the input is format as clique list).
+	NUM_CLIQUES,
 	/// Count the number of nodes found.
 	NUM_NODES,
 	/// Count the number of clusters found.

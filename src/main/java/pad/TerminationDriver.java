@@ -36,8 +36,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
 /**	
- * Driver of the Job responsible for transforming the list of pair 
- * <nodeID, neighborID> into sets of nodes (clusters).
+ * Driver of the Job responsible for transforming the edges list 
+ * <nodeID, neighbourID> into sets of nodes (clusters).
  */
 public class TerminationDriver extends Configured implements Tool
 {	

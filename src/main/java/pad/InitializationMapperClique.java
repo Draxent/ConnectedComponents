@@ -1,5 +1,5 @@
 /**
- *	@file InitializationMapperCluster.java
+ *	@file InitializationMapperClique.java
  *	@brief Mapper task of the \see InitializationDriver Job.
  *  @author Federico Conte (draxent)
  *  
@@ -32,16 +32,16 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import pad.UtilCounters;
 
 /**	Mapper task of the \see InitializationDriver Job. */
-public class InitializationMapperCluster extends Mapper<LongWritable, Text, IntWritable, IntWritable> 
+public class InitializationMapperClique extends Mapper<LongWritable, Text, IntWritable, IntWritable> 
 {
 	// Minus one indicates that a node is alone.
 	private static final IntWritable MINUS_ONE = new IntWritable( -1 );
 	private IntWritable nodeID = new IntWritable();
-	private IntWritable neighborID = new IntWritable();
+	private IntWritable neighbourID = new IntWritable();
 	private MultipleOutputs<IntWritable, IntWritable> mos = null;
 	
 	/**
-	 * Setup method of the this InitializationMapperCluster class.
+	 * Setup method of the this InitializationMapperClique class.
 	 * Set up the multiple outputs variable, used to write the "real" result into the special folder.
 	 * @param context	context of this Job.
 	 * @throws IOException, InterruptedException
@@ -52,7 +52,7 @@ public class InitializationMapperCluster extends Mapper<LongWritable, Text, IntW
 	}
 	
 	/**
-	 * Map method of the this InitializationMapperCluster class.
+	 * Map method of the this InitializationMapperClique class.
 	 * Each line has the following format: NodeID1<SPACE>NodeID2<SPACE>NodeID3....
 	 * This means that all the nodes in the line are strongly connected to each others.
 	 * In this case, we read a line and we split it by the <SPACE> character.
@@ -70,17 +70,17 @@ public class InitializationMapperCluster extends Mapper<LongWritable, Text, IntW
 		// Read line.
 		String line = value.toString();
 		
-		// Increment the number of initial clusters, since in each line there is a new cluster.
-		context.getCounter( UtilCounters.NUM_INITIAL_CLUSTERS ).increment( 1 );
+		// Increment the number of cliques, since in each line there is a new cliques.
+		context.getCounter( UtilCounters.NUM_CLIQUES ).increment( 1 );
 
 		// Split the line on the space character.
-		String clusterLists[] = line.split( " " );
+		String cliquesLists[] = line.split( " " );
 		
 		// If the node is alone.
-		if ( clusterLists.length == 1 )
+		if ( cliquesLists.length == 1 )
 		{
 			// Extract the nodeID.
-			nodeID.set( Integer.parseInt( clusterLists[0] ) );
+			nodeID.set( Integer.parseInt( cliquesLists[0] ) );
 			// Emit the node.
 			context.write( nodeID, MINUS_ONE );
 			// Emit the node in the special folder.
@@ -88,22 +88,22 @@ public class InitializationMapperCluster extends Mapper<LongWritable, Text, IntW
 			return;
 		}
 		
-		// The input file is format as cluster list.
+		// The input file is format as cliques list.
 		// We produce all the combination between two nodes found in the set.
-		for ( int i = 0; i < clusterLists.length - 1; i++ )
+		for ( int i = 0; i < cliquesLists.length - 1; i++ )
 		{
 			// Extract the nodeID.
-			int nodeX = Integer.parseInt( clusterLists[i] );
+			int nodeX = Integer.parseInt( cliquesLists[i] );
 			
-			for ( int j = i + 1; j < clusterLists.length; j++ )
+			for ( int j = i + 1; j < cliquesLists.length; j++ )
 			{
-				// Extract the neighborID.
-				int nodeY = Integer.parseInt( clusterLists[j] );
+				// Extract the neighbourID.
+				int nodeY = Integer.parseInt( cliquesLists[j] );
 				
 				nodeID.set( Math.max ( nodeX, nodeY ) );
-				neighborID.set( Math.min ( nodeX, nodeY ) );
+				neighbourID.set( Math.min ( nodeX, nodeY ) );
 				// Emit the pair in the special folder.
-				mos.write( nodeID, neighborID, pad.InitializationDriver.MOS_BASEOUTPUTPATH );
+				mos.write( nodeID, neighbourID, pad.InitializationDriver.MOS_BASEOUTPUTPATH );
 			}
 			
 			// Emit the encountered node.
@@ -111,12 +111,12 @@ public class InitializationMapperCluster extends Mapper<LongWritable, Text, IntW
 			context.write( nodeID, MINUS_ONE );
 		}
 		// Emit the encountered node.
-		nodeID.set( Integer.parseInt( clusterLists[clusterLists.length - 1] ) );
+		nodeID.set( Integer.parseInt( cliquesLists[cliquesLists.length - 1] ) );
 		context.write( nodeID, MINUS_ONE );
 	}
 	
 	/**
-	 * Cleanup method of the this InitializationMapperCluster class.
+	 * Cleanup method of the this InitializationMapperClique class.
 	 * Close the multiple output file.
 	 * @param context	context of this Job.
 	 * @throws IOException, InterruptedException

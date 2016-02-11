@@ -35,7 +35,7 @@ public class InitializationMapperAdjacency extends Mapper<LongWritable, Text, In
 {
 	public static final IntWritable MINUS_ONE = new IntWritable( -1 );
 	private IntWritable nodeID = new IntWritable();
-	private IntWritable neighborID = new IntWritable();
+	private IntWritable neighbourID = new IntWritable();
 	
 	/**
 	* Map method of the this InitializationMapperAdjacent class.
@@ -57,29 +57,29 @@ public class InitializationMapperAdjacency extends Mapper<LongWritable, Text, In
 		context.getCounter( UtilCounters.NUM_INITIAL_NODES ).increment( 1 );
 
 		// Split the line on the tab character.
-		String userID_neighborhood[] = line.split( "\t" );
+		String userID_neighbourhood[] = line.split( "\t" );
 		
 		// Extract the nodeID.
-		nodeID.set( Integer.parseInt( userID_neighborhood[0] ) );
+		nodeID.set( Integer.parseInt( userID_neighbourhood[0] ) );
 		
 		// If the node is alone.
-		if ( userID_neighborhood.length == 1 )
+		if ( userID_neighbourhood.length == 1 )
 		{
-			// NeighborID is set to minus one, to indicate that the node is alone.
+			// NeighbourID is set to minus one, to indicate that the node is alone.
 			context.write( nodeID, MINUS_ONE );
 			return;
 		}
 		
-		// Split by "," to find the list of neighbors of nodeID.
-		String neighbors[] = userID_neighborhood[1].split( "," );
+		// Split by "," to find the list of neighbours of nodeID.
+		String neighbours[] = userID_neighbourhood[1].split( "," );
 		
-		// Emit the pair <nodeID, neighborID> for each neighbors.
-		for ( int i = 0; i < neighbors.length; i++ )
+		// Emit the pair <nodeID, neighbourID> for each neighbours.
+		for ( int i = 0; i < neighbours.length; i++ )
 		{
-			neighborID.set( Integer.parseInt( neighbors[i] ) );
-			// only if nodeID > neighborID
-			if ( nodeID.get() > neighborID.get() )
-				context.write( nodeID, neighborID );
+			neighbourID.set( Integer.parseInt( neighbours[i] ) );
+			// only if nodeID > neighbourID
+			if ( nodeID.get() > neighbourID.get() )
+				context.write( nodeID, neighbourID );
 		}
 	}
 }

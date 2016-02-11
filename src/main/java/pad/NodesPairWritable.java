@@ -32,8 +32,8 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 {
 	/**	Identifier of the node */
 	public Integer NodeID = new Integer( -1 );
-	/**	Identifier of the neighbor node. The default value ( minus one) means that NodeID has no neighbors. */
-	public Integer NeighborID = new Integer( -1 );
+	/**	Identifier of the neighbour node. The default value ( minus one) means that NodeID has no neighbours. */
+	public Integer NeighbourID = new Integer( -1 );
 	
 	/**
 	* Deserializes the array. Read the data out in the order it is written.
@@ -43,7 +43,7 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 	public void readFields( DataInput in ) throws IOException
 	{
 		this.NodeID = in.readInt();
-		this.NeighborID = in.readInt();
+		this.NeighbourID = in.readInt();
 	}
 	
 	/**
@@ -54,7 +54,7 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 	public void write( DataOutput out ) throws IOException
 	{
 		out.writeInt( this.NodeID );
-		out.writeInt( this.NeighborID );	
+		out.writeInt( this.NeighbourID );	
 	}
 	
 	/**
@@ -63,13 +63,13 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 	*/
 	public String toString()
 	{
-		return this.NodeID + "\t" + this.NeighborID;
+		return this.NodeID + "\t" + this.NeighbourID;
 	}
 
 	/**
 	* Compare this object with other one of its kind.
 	* It compare first the two objects looking to the NodeID.
-	* If they have the same NodeID, compare them looking to the NeighborID.
+	* If they have the same NodeID, compare them looking to the NeighbourID.
 	* @param other	the other object with which to make comparisons.
 	* @return 		<c>0</c> if the two objects are identical,
 	* 				<c>-1</c> if this object is smaller than the <em>other</em>.
@@ -79,7 +79,7 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
 	{
 		int result = this.NodeID - other.NodeID;
 		if( result == 0 )
-			result = this.NeighborID - other.NeighborID;
+			result = this.NeighbourID - other.NeighbourID;
 		return result;
 	}
 	
@@ -90,7 +90,7 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
     public int hashCode()
     {
     	int hash1 = (this.NodeID != null) ? this.NodeID.hashCode() : 0;
-    	int hash2 = (this.NeighborID != null) ? this.NeighborID.hashCode() : 0;
+    	int hash2 = (this.NeighbourID != null) ? this.NeighbourID.hashCode() : 0;
     	return (hash1 + hash2) * hash2 + hash1;
     }
     
@@ -106,7 +106,7 @@ public class NodesPairWritable implements WritableComparable<NodesPairWritable>
     	
     	NodesPairWritable pair = (NodesPairWritable) other;
 		boolean cond1 = ( this.NodeID != null && pair.NodeID != null && this.NodeID.equals(pair.NodeID) );
-		boolean cond2 = ( this.NeighborID != null && pair.NeighborID != null && this.NeighborID.equals(pair.NeighborID) ); 
+		boolean cond2 = ( this.NeighbourID != null && pair.NeighbourID != null && this.NeighbourID.equals(pair.NeighbourID) ); 
 		return cond1 && cond2;
     }
 }

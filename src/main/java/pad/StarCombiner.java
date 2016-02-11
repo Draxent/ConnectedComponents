@@ -33,26 +33,26 @@ public class StarCombiner extends Reducer<NodesPairWritable, IntWritable, NodesP
 	* Reduce method of the this StarCombiner class.
 	* It reduce the number of duplicates that are emit by the \see StarMapper.
 	* @param pair			pair of nodes.
-	* @param neighborhood	list of neighbors.
+	* @param neighbourhood	list of neighbours.
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
+	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighbourhood, Context context ) throws IOException, InterruptedException 
 	{
 		// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
 		int lastNodeSeen = -2;
-		for ( IntWritable neighbor : neighborhood )
+		for ( IntWritable neighbour : neighbourhood )
 		{
 			// Skip the duplicate nodes.
-			if ( neighbor.get() == lastNodeSeen )
+			if ( neighbour.get() == lastNodeSeen )
 				continue;
 			
 			// Emit the pair
-			pair.NeighborID = neighbor.get();
-			context.write( pair, neighbor );
+			pair.NeighbourID = neighbour.get();
+			context.write( pair, neighbour );
 			
-			// Store the last neighborId that we have processed.
-			lastNodeSeen = neighbor.get();
+			// Store the last neighbourId that we have processed.
+			lastNodeSeen = neighbour.get();
 		}
 	}
 }

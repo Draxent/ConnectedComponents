@@ -1,6 +1,6 @@
 /**
  *	@file InitializationDriver.java
- *	@brief Driver of the Job responsible for transforming the adjacency list or cluster list into a list of pair <nodeID, neighborID>.
+ *	@brief Driver of the Job responsible for transforming the adjacency list or cliques list into a list of edges <nodeID, neighborID>.
  *  @author Federico Conte (draxent)
  *  
  *	Copyright 2015 Federico Conte
@@ -40,11 +40,11 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 
-/**	Driver of the Job responsible for transforming the adjacency list or cluster list into a list of pair <nodeID, neighborID>. */
+/**	Driver of the Job responsible for transforming the adjacency list or clique list into a edges list  <nodeID, neighborID>. */
 public class InitializationDriver extends Configured implements Tool
 {	
-	/** The input file can be format as an adjacency list or a cluster list */
-	public enum InputType { ADJACENCY_LIST, CLUSTER_LIST };
+	/** The input file can be format as an adjacency list or a cliques list */
+	public enum InputType { ADJACENCY_LIST, CLIQUES_LIST };
 	/** Directory name for multiple output */
 	public static final String MOS_OUTPUT_NAME = "result";
 	/** Base output path for multiple output */
@@ -53,7 +53,7 @@ public class InitializationDriver extends Configured implements Tool
 	private final Path input, output;
 	private final boolean verbose;
 	private InputType type;
-	private long numInitialClusters, numInitialNodes;
+	private long numCliques, numInitialNodes;
 	
 	/**
 	* Initializes a new instance of the InitializationDriver class.
@@ -69,7 +69,7 @@ public class InitializationDriver extends Configured implements Tool
 		this.verbose = verbose;
 		
 		// Analyze the first line of the input file in order to determine
-		// if is format as an adjacency list or a cluster list.
+		// if is format as an adjacency list or a cliques list.
         FileSystem fs = FileSystem.get( new Configuration() );
         BufferedReader br = new BufferedReader( new InputStreamReader( fs.open( this.input ) ) );
         
@@ -85,13 +85,13 @@ public class InitializationDriver extends Configured implements Tool
 	        if( userID_neighborhood.length == 1 )
 	        {
 				// Split the line on the space character.
-				String clusterLists[] = line.split( " " );
+				String cliquesLists[] = line.split( " " );
 				
 				// If the node is alone we have to repeat the procedure,
 				// since we cannot understand the format analyzing this line.
-				if ( clusterLists.length > 1 )
+				if ( cliquesLists.length > 1 )
 				{
-					this.type = InputType.CLUSTER_LIST;
+					this.type = InputType.CLIQUES_LIST;
 					done = true;
 				}
 	        }
@@ -110,13 +110,13 @@ public class InitializationDriver extends Configured implements Tool
 	 * Execute the InitializationDriver Job.
 	 * 
 	 * If the input file format is adjacency list, then we can easily determinate the initial number of nodes
-	 * that is equal to the number of rows of the input file while the initial number of clusters is zero.
+	 * that is equal to the number of rows of the input file while the number of cliques is zero.
 	 * In order to obtain a list of arcs from the adjacency list, we use the \see InitializationMapperAdjacent
 	 * as Mapper and zero Reducer.
 	 * 
-	 * If the input file format is cluster list, then we can easily determinate the initial number of clusters
+	 * If the input file format is cliques list, then we can easily determinate the number of cliques
 	 * that is equal to the number of rows of the input file.
-	 * In order to obtain a list of arcs from the cluster list, we use the \see InitializationMapperCluster
+	 * In order to obtain a edges list from the cliques list, we use the \see InitializationMapperClique
 	 * as Mapper. We store this result into a special folder \see MOS_OUTPUT_NAME.
 	 * Into the regular folder, this Mapper emits all the encountered nodes.
 	 * We use \see InitializationReducerNumNodes as Reducer in order to count the initial number of nodes
@@ -157,10 +157,10 @@ public class InitializationDriver extends Configured implements Tool
 			// Set up the special folder.
 			MultipleOutputs.addNamedOutput( job, MOS_OUTPUT_NAME, SequenceFileOutputFormat.class, IntWritable.class, IntWritable.class );
 			MultipleOutputs.setCountersEnabled( job, true );
-			// In order to obtain the arcs list from the cluster list, we need only a Mapper task
+			// In order to obtain the edges list from the cliques list, we need only a Mapper task
 			// and we save the result into the special folder.
 			// Then, we need a Reducer task in order to count the initial number of nodes
-			job.setMapperClass( InitializationMapperCluster.class );
+			job.setMapperClass( InitializationMapperClique.class );
 			job.setCombinerClass( InitializationCombinerNumNodes.class );
 			job.setReducerClass( InitializationReducerNumNodes.class  );
 		}		
@@ -169,10 +169,10 @@ public class InitializationDriver extends Configured implements Tool
 			return 1;
 		
 		// Set up the private variables looking to the counters value
-		this.numInitialClusters = job.getCounters().findCounter( UtilCounters.NUM_INITIAL_CLUSTERS ).getValue();
+		this.numCliques = job.getCounters().findCounter( UtilCounters.NUM_CLIQUES ).getValue();
 		this.numInitialNodes = job.getCounters().findCounter( UtilCounters.NUM_INITIAL_NODES ).getValue();
 		
-		if ( this.type == InputType.CLUSTER_LIST )
+		if ( this.type == InputType.CLIQUES_LIST )
 		{
 			FileSystem fs = FileSystem.get( conf );
 			
@@ -204,12 +204,12 @@ public class InitializationDriver extends Configured implements Tool
 	}
 	
 	/**
-	 * Returns the number of initial clusters founds in the input file.
-	 * @return 	number of initial clusters.
+	 * Returns the number of cliques founds in the input file.
+	 * @return 	number of cliques.
 	 */
-	public long getNumInitialClusters()
+	public long getNumCliques()
 	{
-		return this.numInitialClusters;
+		return this.numCliques;
 	}
 	
 	/**

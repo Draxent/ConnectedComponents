@@ -37,14 +37,14 @@ public class TerminationReducer extends Reducer<NodesPairWritable, IntWritable, 
 	
 	/**
 	* Reduce method of the this TerminationReducer class.
-	* For each NodeID, we add that node and all its neighbors to the ClusterWritable object; than we emit it.
+	* For each NodeID, we add that node and all its neighbours to the ClusterWritable object; than we emit it.
 	* Than we increment the NUM_CLUSTERS of \see pad.TerminationDriver.UtilCounters by one.
 	* @param pair			pair used to implement the secondary sort, \see NodesPair.
-	* @param neighborhood	list of neighbors.
+	* @param neighbourhood	list of neighbours.
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighborhood, Context context ) throws IOException, InterruptedException 
+	public void reduce( NodesPairWritable pair, Iterable<IntWritable> neighbourhood, Context context ) throws IOException, InterruptedException 
 	{
 		// Clear the cluster. We have a distinct cluster for each key.
 		cluster.clear();
@@ -54,24 +54,24 @@ public class TerminationReducer extends Reducer<NodesPairWritable, IntWritable, 
 		cluster.add( pair.NodeID );
 		
 		// If the node is not alone
-		if ( pair.NeighborID != -1 )
+		if ( pair.NeighbourID != -1 )
 		{
 			// Do not exists a node with ID equal to minus two ( minus one already used to indicate loneliness )
 			int lastNodeSeen = -2;
 			
-			// Add to the cluster all the neighbors of the node,
-			// we know that the neighbors are sort in ascending order thanks to the secondary order.
-			for ( IntWritable neighbor : neighborhood )
+			// Add to the cluster all the neighbours of the node,
+			// we know that the neighbours are sort in ascending order thanks to the secondary order.
+			for ( IntWritable neighbour : neighbourhood )
 			{
 				// Skip the duplicate nodes.
-				if ( neighbor.get() == lastNodeSeen )
+				if ( neighbour.get() == lastNodeSeen )
 					continue;
 				
 				// Add the node to the cluster
-				cluster.add( neighbor.get() );
+				cluster.add( neighbour.get() );
 				
-				// Store the last neighborId that we have processed.
-				lastNodeSeen = neighbor.get();
+				// Store the last neighbourId that we have processed.
+				lastNodeSeen = neighbour.get();
 			}
 		}
 		

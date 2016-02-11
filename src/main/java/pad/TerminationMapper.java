@@ -35,26 +35,26 @@ public class TerminationMapper extends Mapper<IntWritable, IntWritable, NodesPai
 	* Map method of the this TerminationMapper class.
 	* Emits the pair <min(u,v), max(u,v)>. In this way the \see TerminationReducer will receive a cluster for each key.
 	* @param nodeID			identifier of the node.
-	* @param neighborID		identifier of the neighbor.
+	* @param neighbourID		identifier of the neighbour.
 	* @param context		context of this Job.
 	* @throws IOException, InterruptedException
 	*/
-	public void map( IntWritable nodeID, IntWritable neighborID, Context context ) throws IOException, InterruptedException 
+	public void map( IntWritable nodeID, IntWritable neighbourID, Context context ) throws IOException, InterruptedException 
 	{
-		// if the label of node is less than the label of the neighbor
-		if ( nodeID.get() < neighborID.get() || neighborID.get() == -1 )
+		// if the label of node is less than the label of the neighbour
+		if ( nodeID.get() < neighbourID.get() || neighbourID.get() == -1 )
 		{
 			// Set up the pair.
 			pair.NodeID = nodeID.get();
-			pair.NeighborID =  neighborID.get();
+			pair.NeighbourID =  neighbourID.get();
 			
-			context.write( pair, neighborID );
+			context.write( pair, neighbourID );
 		}
 		else
 		{
 			// Set up the pair.
-			pair.NodeID = neighborID.get();
-			pair.NeighborID =  nodeID.get();
+			pair.NodeID = neighbourID.get();
+			pair.NeighbourID =  nodeID.get();
 			
 			context.write( pair, nodeID );
 		}

@@ -37,7 +37,7 @@ public class ConnectedComponents
 	private final Path input, output;
 	private final FileSystem fs;
 	private InputType type;
-	private long numInitialClusters, numInitialNodes, numNodes, numClusters;
+	private long numCliques, numInitialNodes, numNodes, numClusters;
 	private boolean testOk;
 	
 	/**
@@ -71,8 +71,7 @@ public class ConnectedComponents
 	 */
 	public boolean run() throws Exception
 	{	
-		// Run initialization in order to transform the adjacency list or cluster list into
-		// a list of pair <nodeID, neighborID>.
+		// Run initialization in order to transform the adjacency list or cliques list into a edges list <nodeID, neighborID>.
 		InitializationDriver init = new InitializationDriver( this.input, this.input.suffix( "_0" ), false );
 		if ( init.run( null ) != 0 )
 		{
@@ -110,7 +109,7 @@ public class ConnectedComponents
 		}
 		while ( (largeStar.getNumChanges() + smallStar.getNumChanges() != 0) && (i < 2*MAX_ITERATIONS) );
 		
-		// Run it in order to transform the list of pair <nodeID, neighborID> into sets of nodes (clusters)
+		// Run it in order to transform the edges list <nodeID, neighborID> into sets of nodes (clusters)
 		TerminationDriver term = new TerminationDriver( this.input.suffix( "_" + i ), this.output, false );
 		if ( term.run( null ) != 0 )
 		{
@@ -127,7 +126,7 @@ public class ConnectedComponents
 			return false;
 		
 		this.type = init.getInputType();
-		this.numInitialClusters = init.getNumInitialClusters();
+		this.numCliques = init.getNumCliques();
 		this.numInitialNodes = init.getNumInitialNodes();
 		this.numClusters = term.getNumClusters();
 		this.numNodes = term.getNumNodes();
@@ -146,12 +145,12 @@ public class ConnectedComponents
 	}
 	
 	/**
-	 * Returns the number of initial clusters founds in the input file.
-	 * @return 	number of initial clusters.
+	 * Returns the number of cliques founds in the input file.
+	 * @return 	number of cliques.
 	 */
-	public long getNumInitialClusters()
+	public long getNumCliques()
 	{
-		return this.numInitialClusters;
+		return this.numCliques;
 	}
 	
 	/**
@@ -214,9 +213,9 @@ public class ConnectedComponents
 		
 		System.out.println( "Input file format: \033[1;94m" + cc.getInputType().toString() + "\033[0m." );
 		System.out.println( "Number of initial nodes: \033[1;94m" + cc.getNumInitialNodes() + "\033[0m." );
-		System.out.println( "Number of initial Clusters: \033[1;94m" + cc.getNumInitialClusters() + "\033[0m." );
+		System.out.println( "Number of Cliques: \033[1;94m" + cc.getNumCliques() + "\033[0m." );
 		System.out.println( "Number of final nodes: \033[1;94m" + cc.getNumNodes() + "\033[0m." );
-		System.out.println( "Number of final Clusters: \033[1;94m" + cc.getNumClusters() + "\033[0m." );
+		System.out.println( "Number of Clusters: \033[1;94m" + cc.getNumClusters() + "\033[0m." );
 		System.out.println( "TestOK: \033[1;94m" + String.valueOf( cc.isTestOk() ) + "\033[0m." );
 		
 		System.exit( 0 );
