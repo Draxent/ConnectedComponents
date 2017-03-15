@@ -6,7 +6,7 @@
 
 ---
 
-###Description
+### Description
 Given a graph, this algorithm identifies the [connected components](https://en.wikipedia.org/wiki/Connected_component_(graph_theory)) using Hadoop MapReduce framework.
 
 In the following, a **connected component** will be called as **"cluster"**.
@@ -24,7 +24,7 @@ The algorithm tries to implement the *"The Alternating Algorithm"* proposed in t
 
 If this *README* is not enough and you want to have more details on the application, you can read the [report](./report.pdf).
 
-###Demonstration
+### Demonstration
 Below, it is shown a demonstration of usage of the **ConnectedComponents** class that allows you to run the connected component algorithm on your graph.<br />
 This code simply creates a **ConnectedComponents** object, taking as input the graph and the output folder. Invoking the **run** method,  the algorithm will produce an hdfs file for each Reducer task, invoked by MapReduce framework, into the output folder. These files will contain the clusters found in the input graph.
 
@@ -68,7 +68,7 @@ This makes it possible to translate the result files in text and look which node
 
 Otherwise, of course, you can code a MapReduce Job to perform the operation that you are looking for taking as input the *"out"* folder.
 
-###Compile
+### Compile
 After you have cloned the project, to compile the program you'll need to use the following command lines:
 
 ```bash
@@ -76,7 +76,7 @@ cd ConnectedComponents
 mvn package
 ```
 
-###Usage
+### Usage
 To run the program, you'll need to use the following command line:
 
 ```bash
@@ -155,7 +155,7 @@ For example, you can test the following graph:
 
 In the [bin](./bin) folder, you can find a *bash script* that tests each phase for every appropriate input found in the [data](./data) folder. Pay attenction that for the *StarTest.sh* script, you need to specify the *type* of the operation as argument, like "small" or "large".
 
-###License
+### License
 Apache License
 
 Copyright (c) 2015 Federico Conte
